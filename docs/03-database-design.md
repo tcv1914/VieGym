@@ -113,10 +113,13 @@ Index: `(user_id)`.
 |---|---|---|
 | `id` | UUID | PK |
 | `user_id` | UUID | FK → `users`, bắt buộc |
-| `token_hash` | CHAR(64) | SHA‑256 của mã/token; **UNIQUE** |
+| `token_hash` | CHAR(64) | SHA‑256 của mã; **không** UNIQUE vì mã 6 chữ số có thể trùng giữa các user |
 | `expires_at` | TIMESTAMPTZ | Bắt buộc (15 phút sau khi tạo) |
 | `used_at` | TIMESTAMPTZ | NULL = chưa dùng |
+| `attempt_count` | SMALLINT | Mặc định 0; số lần nhập sai, đạt 5 thì vô hiệu mã (BR-A06) |
 | `created_at` | TIMESTAMPTZ | Bắt buộc |
+
+Index: `(user_id, created_at DESC)`. Tra mã theo user (từ email) rồi so sánh hash; tạo mã mới thì vô hiệu các mã chưa dùng trước đó của user.
 
 ## 4. Nhóm sức khỏe
 
@@ -142,7 +145,7 @@ Kết quả tính từ `health_profiles`; ghi lại cùng giao dịch khi lưu h
 |---|---|---|
 | `id` | UUID | PK |
 | `user_id` | UUID | FK → `users`; **UNIQUE** |
-| `bmi` | NUMERIC(4,2) | > 0 |
+| `bmi` | NUMERIC(5,2) | > 0; dải đầu vào hợp lệ cho BMI tới 300,00 |
 | `bmr_kcal` | NUMERIC(6,1) | > 0 |
 | `tdee_kcal` | NUMERIC(6,1) | > 0 |
 | `target_kcal` | NUMERIC(6,1) | > 0 |
@@ -213,6 +216,7 @@ User "chọn giáo án mẫu" = backend **sao chép** mẫu thành giáo án c�
 | `created_at`, `updated_at` | TIMESTAMPTZ | Bắt buộc |
 
 Ràng buộc: partial UNIQUE (`program_id`, `day_order`) WHERE `archived_at IS NULL`.
+Đổi thứ tự buổi khi `PUT /workout-programs`: partial index không DEFERRABLE được, nên trước hết gán tạm `day_order = day_order + 100` cho các buổi giữ lại, sau đó đánh lại từ 1 theo thứ tự trong body.
 
 ### `workout_exercises`
 
@@ -226,6 +230,8 @@ Ràng buộc: partial UNIQUE (`program_id`, `day_order`) WHERE `archived_at IS N
 | `target_reps` | SMALLINT | 1–100 |
 | `rest_seconds` | SMALLINT | 0–600 |
 | `created_at`, `updated_at` | TIMESTAMPTZ | Bắt buộc |
+
+Khi sửa giáo án: xóa toàn bộ `workout_exercises` của buổi rồi INSERT lại theo body (không UPDATE `order_no` từng dòng). An toàn vì log không tham chiếu bảng này.
 
 ### `workout_schedules`
 
@@ -391,6 +397,7 @@ Ràng buộc: **UNIQUE (`user_id`, `client_request_id`)**. Index (`user_id`, `cr
 | Một cân nặng/user/ngày | UNIQUE (`weight_logs.user_id`, `log_date`) |
 | Một workout log/lịch | UNIQUE `workout_logs.schedule_id` |
 | Một giáo án active/user | Partial UNIQUE `workout_programs(user_id) WHERE is_active` |
+| Mã đặt lại mật khẩu | Không UNIQUE; giới hạn 5 lần sai/mã (`attempt_count`) |
 | Gửi lặp câu hỏi AI | UNIQUE (`ai_chat_requests.user_id`, `client_request_id`) |
 | Thứ tự trong cha | UNIQUE (cha, `order_no`/`set_no`/`day_order`) |
 

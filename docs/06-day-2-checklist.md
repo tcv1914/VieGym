@@ -44,26 +44,29 @@ Cả ba tình huống đều trả lời được từ tài liệu; không cần
 - [x] Có cách giữ lịch sử dinh dưỡng/luyện tập — snapshot, `04-business-rules.md` §8
 - [x] API core có đầu vào, đầu ra và lỗi — `05-api-contract.md`
 - [x] Ba tình huống rà soát đều giải thích được — mục 1
-- [ ] Tài liệu đã lưu vào Git
+- [x] Tài liệu đã lưu vào Git — commit `8b429b9`
 
 ## 3. Việc cần xác nhận
 
-Các mục ghi **[Cần xác nhận]** trong `04-business-rules.md`:
+Đã chốt (chuyển sang **[Đã chốt]** trong `04-business-rules.md`):
 
-1. Khoảng tuổi hợp lệ 18–80.
-2. Calories giảm cân (TDEE − 500) và ngưỡng tối thiểu.
-3. Toàn bộ quy tắc macro (protein g/kg, fat 25%).
-4. Không cho ghi log buổi tập ở ngày tương lai.
-5. Khoảng ngày cho phép lập thực đơn.
-6. Con số giới hạn tần suất AI.
-7. Dịch vụ email gửi mã đặt lại mật khẩu khi demo.
+- [x] Khoảng tuổi hợp lệ 18–80.
+- [x] Calories giảm cân (TDEE − 500) và ngưỡng tối thiểu.
+- [x] Toàn bộ quy tắc macro (protein g/kg, trần protein 35%, fat 25%).
+- [x] Không cho ghi log buổi tập ở ngày tương lai.
+- [x] Khoảng ngày cho phép lập thực đơn.
+- [x] Con số giới hạn tần suất AI.
+- [x] Kênh gửi mã đặt lại mật khẩu (SMTP; dev dùng log/Mailpit).
+- [x] Giới hạn đặt lại mật khẩu: tối đa 5 lần sai/mã và 10 yêu cầu/IP/15 phút (BR-A06).
+
+Không còn mục nào chờ xác nhận.
 
 ## 4. Nhật ký cuối ngày
 
 ```text
 Ngày: 2026-10-22
 Đã hoàn thành: Use case + actor; thiết kế 20 bảng, ERD, ràng buộc; quy tắc nghiệp vụ và công thức có bộ số kiểm thử; hợp đồng API cho toàn bộ UC01–UC12; rà ba tình huống.
-Chưa hoàn thành: Commit tài liệu; xác nhận 7 mục ở phần 3.
+Chưa hoàn thành: Không.
 Lỗi/vướng mắc: Repo chưa có SRS nên công thức chốt theo số liệu kich-ban-demo.md (Mifflin‑St Jeor, +300 kcal tăng cơ).
 Bằng chứng kiểm tra: Bảng rà soát ba tình huống ở mục 1; bộ số kiểm thử tại 04-business-rules.md §3.7.
 Việc đầu tiên ngày mai: Khởi tạo Spring Boot backend, cấu hình Flyway và viết migration V1 theo 03-database-design.md.

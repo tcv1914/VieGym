@@ -24,8 +24,8 @@ Ký hiệu: **[Đã chốt]** — quyết định thiết kế MVP; **[Cần xá
 | BR-A03 | Access token JWT hạn 15 phút; refresh token ngẫu nhiên hạn 30 ngày, lưu hash. |
 | BR-A04 | Mỗi lần refresh: thu hồi token cũ, cấp token mới (xoay vòng). Dùng lại token đã thu hồi → thu hồi toàn bộ phiên của user đó. |
 | BR-A05 | Đăng nhập sai không nói rõ sai email hay mật khẩu: `401 INVALID_CREDENTIALS`. |
-| BR-A06 | Quên mật khẩu luôn trả `204` dù email có tồn tại hay không. Mã đặt lại 6 chữ số, hạn 15 phút, dùng một lần; đặt lại thành công thu hồi mọi refresh token. |
-| BR-A07 | Kênh gửi mã đặt lại: email qua SMTP; môi trường dev ghi ra log/Mailpit. **[Cần xác nhận]** dịch vụ email dùng khi demo. |
+| BR-A06 | Quên mật khẩu luôn trả `204` dù email có tồn tại hay không. Mã đặt lại 6 chữ số, hạn 15 phút, dùng một lần; tạo mã mới vô hiệu mã cũ. Nhập sai tối đa 5 lần/mã, lần thứ 5 vô hiệu mã (`used_at = now()`); `/auth/reset-password` giới hạn thêm 10 yêu cầu/IP/15 phút [Đã chốt]. Đặt lại thành công thu hồi mọi refresh token. |
+| BR-A07 | Kênh gửi mã đặt lại: email qua SMTP; môi trường dev ghi ra log/Mailpit. [Đã chốt] |
 
 ## 3. Chỉ số sức khỏe và mục tiêu dinh dưỡng
 
@@ -34,7 +34,7 @@ Ký hiệu: **[Đã chốt]** — quyết định thiết kế MVP; **[Cần xá
 | Trường | Đơn vị | Hợp lệ |
 |---|---|---|
 | Giới tính (dùng cho công thức) | — | `MALE`, `FEMALE` |
-| Ngày sinh → tuổi | năm tròn, tính tại ngày tính theo múi giờ user | 18–80 **[Cần xác nhận]** — công thức Mifflin‑St Jeor áp dụng cho người trưởng thành |
+| Ngày sinh → tuổi | năm tròn, tính tại ngày tính theo múi giờ user | 18–80 [Đã chốt] — công thức Mifflin‑St Jeor áp dụng cho người trưởng thành |
 | Chiều cao | cm | 100,0–250,0 |
 | Cân nặng | kg | 30,0–300,0 |
 | Mức vận động | — | 5 mức ở bảng 3.3 |
@@ -67,22 +67,22 @@ TDEE = BMR × hệ số vận động
 |---|---|---|
 | `GAIN_MUSCLE` | TDEE + 300 | [Đã chốt] theo kịch bản demo |
 | `MAINTAIN` | TDEE | [Đã chốt] |
-| `LOSE_WEIGHT` | TDEE − 500 | [Cần xác nhận] |
+| `LOSE_WEIGHT` | TDEE − 500 | [Đã chốt] |
 
-Giới hạn dưới: `target_kcal` không thấp hơn `max(BMR, 1.200)` với FEMALE và `max(BMR, 1.500)` với MALE; nếu chạm ngưỡng, API trả cờ `kcalFloorApplied = true` để app giải thích. **[Cần xác nhận]**
+Giới hạn dưới: `target_kcal` không thấp hơn `max(BMR, 1.200)` với FEMALE và `max(BMR, 1.500)` với MALE; nếu chạm ngưỡng, API trả cờ `kcalFloorApplied = true` để app giải thích. [Đã chốt]
 
 MVP dùng một giá trị cố định, không trả "khoảng đề xuất".
 
-### 3.5 Macro [Cần xác nhận toàn bộ mục này]
+### 3.5 Macro [Đã chốt]
 
 ```text
-protein_g = hệ số protein × weight_kg
+protein_g = min(hệ số protein × weight_kg, 35% × target_kcal / 4)
             LOSE_WEIGHT 2,0 · MAINTAIN 1,6 · GAIN_MUSCLE 1,8 (g/kg)
 fat_g     = 25% × target_kcal / 9
 carbs_g   = (target_kcal − protein_g × 4 − fat_g × 9) / 4
 ```
 
-Nếu `carbs_g < 0` (không xảy ra trong dải đầu vào hợp lệ, nhưng vẫn kiểm tra) → lỗi `500` nội bộ và ghi log, không lưu mục tiêu âm.
+Trần 35% cho protein đảm bảo carbs luôn ≥ 40% `target_kcal` (100% − 35% − 25%), nên `carbs_g` không âm với mọi đầu vào. Không có trần này, người nặng cân với mục tiêu giảm cân sẽ ra carbs âm (xem ca 2 ở §3.7). Code vẫn giữ kiểm tra `carbs_g < 0` → lỗi `500` nội bộ và ghi log, không lưu mục tiêu âm.
 
 ### 3.6 Làm tròn
 
@@ -109,6 +109,18 @@ Nam, 22 tuổi, 170 cm, 65 kg, `MODERATE`, `GAIN_MUSCLE`:
 | Fat | 77,545… | 77,5 |
 | Carbs | 406,429… | 406,4 |
 
+Ca 2 — biên trần protein: Nữ, 80 tuổi, 100 cm, 300 kg, `SEDENTARY`, `LOSE_WEIGHT`:
+
+| Chỉ số | Giá trị thô | Lưu |
+|---|---|---|
+| BMI | 300 | 300,00 |
+| BMR | 3.064 | 3.064,0 |
+| TDEE | 3.676,8 | 3.676,8 |
+| Calories mục tiêu | 3.176,8 (không chạm ngưỡng dưới) | 3.176,8 |
+| Protein | min(600; 277,97) = 277,97 | 278,0 |
+| Fat | 88,244… | 88,2 |
+| Carbs | 317,68 | 317,7 |
+
 ### 3.8 Cập nhật hồ sơ và mục tiêu
 
 | Mã | Quy tắc |
@@ -116,6 +128,7 @@ Nam, 22 tuổi, 170 cm, 65 kg, `MODERATE`, `GAIN_MUSCLE`:
 | BR-H01 | Lưu hồ sơ (`PUT /health-profile/me`) → tính lại và ghi `nutrition_targets` trong cùng giao dịch. |
 | BR-H02 | Ghi cân nặng mới (`weight_logs`) **không** tự đổi `health_profiles.weight_kg` hay mục tiêu. App hỏi "Cập nhật hồ sơ và tính lại mục tiêu?"; chỉ khi user xác nhận mới gọi `PUT /health-profile/me`. |
 | BR-H03 | Mục tiêu chỉ lưu bản hiện tại; so sánh thực đơn cũ dùng mục tiêu hiện tại (NUT-BR09). |
+| BR-H04 | Mục tiêu chỉ tính lại khi user lưu hồ sơ (`PUT /health-profile/me`). **Hạn chế MVP:** tuổi trong công thức tăng theo thời gian nhưng mục tiêu không tự cập nhật, nên sau sinh nhật user có thể thấy mục tiêu lệch nhẹ (BMR giảm 5 kcal/năm tuổi) cho đến khi lưu lại hồ sơ. |
 
 ## 4. Luyện tập
 
@@ -129,7 +142,7 @@ Nam, 22 tuổi, 170 cm, 65 kg, `MODERATE`, `GAIN_MUSCLE`:
 | BR-W06 | Gửi lặp: lịch đã COMPLETED hoặc vi phạm UNIQUE `schedule_id` → `409 WORKOUT_ALREADY_LOGGED` kèm `workoutLogId` để app mở log hiện có. |
 | BR-W07 | Sửa giáo án: thay thế danh sách buổi/bài. Buổi bị gỡ mà còn lịch tham chiếu thì archive (`archived_at`) thay vì xóa; lịch `SCHEDULED` của buổi bị gỡ vẫn tập được theo bài hiện có của buổi đó. Log cũ không bị ảnh hưởng nhờ snapshot. |
 | BR-W08 | Ghi log: `reps` 1–1000, `weightKg` 0–999,99, ít nhất 1 bài và 1 set; `setNo`/`orderNo` liên tục từ 1 do backend đánh lại theo thứ tự gửi lên. Cho phép bài ngoài kế hoạch nhưng phải là bài đang hoạt động. |
-| BR-W09 | Không cho ghi log cho lịch có `scheduled_date` ở tương lai (theo múi giờ user). **[Cần xác nhận]** |
+| BR-W09 | Không cho ghi log cho lịch có `scheduled_date` ở tương lai (theo múi giờ user). [Đã chốt] |
 
 ## 5. Dinh dưỡng
 
@@ -141,7 +154,7 @@ Nam, 22 tuổi, 170 cm, 65 kg, `MODERATE`, `GAIN_MUSCLE`:
 | BR-N04 | App không gửi kcal/macro; nếu gửi, backend bỏ qua. |
 | BR-N05 | Snapshot chụp lúc thêm; sửa `servings` không cập nhật snapshot. Đổi món = xóa mục và thêm mục mới. |
 | BR-N06 | Thực đơn tạo tự động khi thêm món đầu tiên của ngày; xóa hết món không xóa `meal_plans`. |
-| BR-N07 | Cho phép ghi thực đơn cho ngày quá khứ và tối đa 7 ngày tới. **[Cần xác nhận]** |
+| BR-N07 | Cho phép ghi thực đơn cho ngày quá khứ và tối đa 7 ngày tới. [Đã chốt] |
 
 ## 6. Cân nặng
 
@@ -157,7 +170,7 @@ Nam, 22 tuổi, 170 cm, 65 kg, `MODERATE`, `GAIN_MUSCLE`:
 | BR-AI01 | AI chỉ tư vấn; không có API nào để AI tự ghi dữ liệu nghiệp vụ (AI-BR09). |
 | BR-AI02 | Request gồm `message`, `clientRequestId`, `conversationId` (tùy chọn). Context do backend tự lấy (AI-BR06). |
 | BR-AI03 | Context gửi đi: hồ sơ + mục tiêu, thực đơn hôm nay + tổng, tối đa 5 log tập gần nhất, lịch 7 ngày tới, tối đa 10 tin nhắn gần nhất của hội thoại. Không gửi email, tên đầy đủ, token. |
-| BR-AI04 | Giới hạn: câu hỏi ≤ 2.000 ký tự; timeout gọi AI 30 giây; tối đa 5 câu hỏi/phút và 50 câu hỏi/ngày/user. **[Cần xác nhận]** con số giới hạn. |
+| BR-AI04 | Giới hạn: câu hỏi ≤ 2.000 ký tự; timeout gọi AI 30 giây; tối đa 5 câu hỏi/phút và 50 câu hỏi/ngày/user. [Đã chốt] |
 | BR-AI05 | Luồng lưu: (1) lưu câu hỏi + request `PROCESSING` và commit; (2) gọi `ai-service` ngoài giao dịch; (3) lưu phản hồi + `SUCCEEDED`, hoặc `FAILED` + `error_code`. Câu hỏi không bao giờ mất khi AI lỗi. |
 | BR-AI06 | Gửi lặp cùng `clientRequestId`: `SUCCEEDED` → trả lại kết quả cũ; `PROCESSING` → `409 AI_REQUEST_IN_PROGRESS`; `FAILED` → thử lại trên cùng tin nhắn câu hỏi (`attempt_count + 1`), không tạo câu hỏi mới. |
 | BR-AI07 | Request `PROCESSING` quá 2 phút (ví dụ server khởi động lại) được coi là `FAILED / AI_TIMEOUT`. |

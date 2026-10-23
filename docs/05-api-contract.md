@@ -109,13 +109,13 @@ Lỗi: `400`, `401 INVALID_CREDENTIALS`, `403 ACCOUNT_LOCKED`.
 **200**: cùng cấu trúc với login (token mới, xoay vòng — BR-A04).
 Lỗi: `401 INVALID_REFRESH_TOKEN` (sai, hết hạn, đã thu hồi), `403 ACCOUNT_LOCKED`.
 
-### `POST /auth/logout` — User
+### `POST /auth/logout` — Public
 
 ```json
 { "refreshToken": "opaque-random-string" }
 ```
 
-**204**. Thu hồi refresh token nếu thuộc user hiện tại; token không tồn tại vẫn trả 204.
+**204**. Không cần access token (có thể đã hết hạn). Thu hồi refresh token trong body; token không tồn tại hoặc đã thu hồi vẫn trả 204.
 
 ### `POST /auth/forgot-password` — Public
 
@@ -131,7 +131,8 @@ Lỗi: `401 INVALID_REFRESH_TOKEN` (sai, hết hạn, đã thu hồi), `403 ACCO
 { "email": "minh@example.com", "code": "482913", "newPassword": "Matkhau456" }
 ```
 
-**204**. Lỗi: `400 VALIDATION_ERROR`, `400 INVALID_RESET_CODE` (sai/hết hạn/đã dùng).
+**204**. Lỗi: `400 VALIDATION_ERROR`, `400 INVALID_RESET_CODE` (sai/hết hạn/đã dùng/đã bị vô hiệu sau 5 lần sai — BR-A06), `429 RATE_LIMITED` (vượt giới hạn theo IP, kèm header `Retry-After`).
+Không phân biệt "sai mã" với "mã đã bị vô hiệu" để tránh lộ thông tin.
 
 ### `GET /users/me` — User
 

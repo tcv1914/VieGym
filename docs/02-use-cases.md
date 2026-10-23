@@ -23,7 +23,7 @@
 | UC08 | User            | Theo dõi cân nặng      | Ghi nhận theo ngày, xem lịch sử            |
 | UC09 | User            | Xem dashboard          | Tổng hợp sức khỏe, ăn uống, luyện tập      |
 | UC10 | User            | Chat với AI            | Nhận phản hồi theo ngữ cảnh, lưu hội thoại |
-| UC11 | User            | Đặt lại mật khẩu       | Đổi mật khẩu qua mã/liên kết hợp lệ        |
+| UC11 | Khách           | Đặt lại mật khẩu       | Đổi mật khẩu qua mã/liên kết hợp lệ        |
 | UC12 | Admin           | Quản trị dữ liệu       | Quản lý món ăn, bài tập và tài khoản       |
 
 ## Đặc tả ba use case trọng tâm
@@ -119,7 +119,7 @@
 | **Actor chính**              | Người dùng đã đăng nhập                                                                   |
 | **Kích hoạt**                | Người dùng mở Meal Planner và chọn ngày                                                   |
 | **Mức ưu tiên**              | Bắt buộc trong MVP                                                                        |
-| **Tiền điều kiện**           | Người dùng có phiên đăng nhập hợp lệ và đã hoàn thiện hồ sơ sức khỏe, mục tiêu dinh dưỡng |
+| **Tiền điều kiện**           | Người dùng có phiên đăng nhập hợp lệ. Nếu chưa có hồ sơ sức khỏe vẫn ghi được thực đơn nhưng không so sánh với mục tiêu (A8) |
 | **Hậu điều kiện thành công** | Thực đơn được cập nhật; tổng dinh dưỡng và dashboard phản ánh dữ liệu mới                 |
 | **Hậu điều kiện thất bại**   | Thực đơn giữ nguyên nếu thao tác thêm/sửa/xóa thất bại                                    |
 
