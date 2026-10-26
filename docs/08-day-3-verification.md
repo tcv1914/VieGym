@@ -1,6 +1,6 @@
 # Ngày 3 — Kết quả kiểm tra bộ khung
 
-Ngày kiểm tra: 2026-10-23. Chỉ ghi kết quả đã chạy thật; mục chưa chạy ghi rõ **Chưa kiểm tra**.
+Ngày kiểm tra: 2026-10-23 (backend, DB, AI); 2026-10-26 (app trên Android). Chỉ ghi kết quả đã chạy thật; mục chưa chạy ghi rõ **Chưa kiểm tra**.
 
 ## 1. Môi trường
 
@@ -11,7 +11,7 @@ Ngày kiểm tra: 2026-10-23. Chỉ ghi kết quả đã chạy thật; mục ch
 | PostgreSQL | 17 (Docker, `infra/compose.yaml`, cổng `127.0.0.1:5432`) |
 | Flutter | 3.47.7 stable; `http` ^1.6.0, `flutter_riverpod` ^3.4.3 |
 | Python | 3.13.7; FastAPI 0.161.1, uvicorn 0.54.0 |
-| Thiết bị Android | **Chưa kết nối** (`adb devices` trống) |
+| Thiết bị Android | OPPO CPH2565, Android 15 (API 35), USB + `adb reverse tcp:8080 tcp:8080` |
 
 ## 2. Kết quả
 
@@ -28,9 +28,17 @@ Ngày kiểm tra: 2026-10-23. Chỉ ghi kết quả đã chạy thật; mục ch
 | FastAPI docs | Mở được | ✅ `/docs` HTTP 200 |
 | `flutter analyze` | Không lỗi | ✅ `No issues found!` |
 | Widget test màn kiểm tra | Thành công và lỗi + Thử lại | ✅ 2/2 test qua (provider giả lập) |
-| App trên Android: thành công | Hiện message của DB | **Chưa kiểm tra** — chưa có thiết bị |
-| App: dừng backend | Báo lỗi trong 10 giây | **Chưa kiểm tra** |
-| App: chạy lại backend + Thử lại | Kết nối thành công | **Chưa kiểm tra** |
+| App trên Android: thành công | Hiện message của DB | ✅ `Kết nối backend và database thành công` + `VieGym database connected` (ảnh 1) |
+| App: dừng backend | Báo lỗi trong 10 giây | ✅ Loading ~2 giây rồi báo lỗi lúc ~2,8 giây sau khi bấm Thử lại (ảnh 2, 3) |
+| App: chạy lại backend + Thử lại | Kết nối thành công | ✅ Thành công sau khi bấm Thử lại; backend log `Schema "public" is up to date. No migration necessary.` (ảnh 4) |
+
+### Ảnh chụp trên điện thoại
+
+| 1. Thành công | 2. Dừng backend | 3. Đang tải | 4. Thử lại sau khi chạy lại backend |
+|---|---|---|---|
+| ![](images/day-3/01-ket-noi-thanh-cong.png) | ![](images/day-3/02-backend-dung.png) | ![](images/day-3/03-dang-tai.png) | ![](images/day-3/04-thu-lai-thanh-cong.png) |
+
+Kiểm tra app chạy trên mã của commit `ee2aee1` (chưa gồm phần Auth ngày 4 đang làm dở). Thời gian đo bằng `screencap` trên máy, mỗi khung cách nhau ~0,7 giây. Backend dừng nên `adb reverse` từ chối kết nối ngay; trường hợp server treo không trả lời mới chạm timeout 10 giây (đã có widget test với provider giả lập, chưa thử trên máy).
 
 ## 3. Lỗi gặp và cách xử lý
 
@@ -41,6 +49,8 @@ Ngày kiểm tra: 2026-10-23. Chỉ ghi kết quả đã chạy thật; mục ch
 | `FATAL: invalid value for parameter "TimeZone": "Asia/Saigon"` | JVM trên Windows dùng tên múi giờ cũ, PostgreSQL 17 từ chối khi JDBC gửi lúc kết nối | Đặt `TimeZone.setDefault(UTC)` trong `BackendApplication` (khớp BR-G03: lưu UTC) |
 | Dừng DB, request treo 30 giây | `connection-timeout` mặc định của Hikari là 30 giây, dài hơn timeout 10 giây của app | `spring.datasource.hikari.connection-timeout: 5000` |
 | `ai-service/requirements.txt` mã hóa UTF‑16 | Tạo bằng `Out-File` của PowerShell 5.1 | Tạo lại bằng `pip freeze >` (UTF‑8) |
+| `adb devices` báo `unauthorized` | Điện thoại chưa chấp nhận khóa RSA của máy tính | Mở khóa điện thoại, bấm Cho phép gỡ lỗi USB |
+| Cổng 5432 đã bị chiếm khi bật Postgres | Container Postgres của dự án khác đang chạy cùng cổng | Tạm `docker stop` container đó (giữ volume), chạy compose của VieGym, xong bật lại |
 
 ## 4. Cách chạy lại
 
@@ -65,6 +75,5 @@ flutter run --dart-define=API_BASE_URL=http://127.0.0.1:8080
 
 ## 5. Còn tồn tại
 
-- Chưa chạy app trên Android thật/emulator, chưa có ảnh màn hình.
 - `adb` chưa có trong PATH; gọi bằng đường dẫn đầy đủ.
 - Máy chưa có JDK 21; đang dùng JDK 24 (không phải LTS).
