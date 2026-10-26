@@ -1,0 +1,20 @@
+spring:
+  application:
+    name: viegym-backend
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/viegym}
+    username: ${DB_USER:viegym}
+    password: ${DB_PASSWORD}
+    hikari:
+      # Database chết thì báo lỗi trong 5 giây, trước timeout 10 giây của app.
+      connection-timeout: 5000
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+
+server:
+  port: 8080
+  address: 127.0.0.1
