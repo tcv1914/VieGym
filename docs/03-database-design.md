@@ -20,7 +20,8 @@
 
 ```mermaid
 erDiagram
-    users ||--o{ refresh_tokens : has
+    users ||--o{ auth_sessions : has
+    auth_sessions ||--o{ refresh_tokens : has
     users ||--o{ password_reset_tokens : has
     users ||--o| health_profiles : has
     users ||--o| nutrition_targets : has
@@ -52,6 +53,8 @@ erDiagram
 Bản văn bản:
 
 ```text
+User → AuthSession                 1–n
+AuthSession → RefreshToken         1–n
 User → HealthProfile               1–0..1
 User → NutritionTarget             1–0..1
 User → WeightLog                   1–n
@@ -86,26 +89,40 @@ AiConversation → AiChatRequest     1–n
 |---|---|---|
 | `id` | UUID | PK |
 | `email` | VARCHAR(254) | Bắt buộc; lưu dạng đã chuẩn hóa (trim + lowercase); **UNIQUE** |
-| `password_hash` | VARCHAR(100) | Bắt buộc; BCrypt, không lưu mật khẩu gốc |
+| `password_hash` | VARCHAR(255) | Bắt buộc; BCrypt có tiền tố `{bcrypt}`, không lưu mật khẩu gốc |
 | `full_name` | VARCHAR(100) | Bắt buộc, không rỗng |
 | `role` | VARCHAR(10) | `USER` \| `ADMIN`, mặc định `USER` |
 | `status` | VARCHAR(10) | `ACTIVE` \| `LOCKED`, mặc định `ACTIVE` |
 | `timezone` | VARCHAR(50) | Mặc định `Asia/Ho_Chi_Minh` (IANA) |
 | `created_at`, `updated_at` | TIMESTAMPTZ | Bắt buộc |
 
-### `refresh_tokens`
+### `auth_sessions`
+
+Một lần đăng nhập trên một thiết bị. Access token mang `sid` = `id`; mọi request riêng tư kiểm tra phiên còn hiệu lực (ngày 4, `09-auth-design.md`).
 
 | Cột | Kiểu | Quy tắc |
 |---|---|---|
 | `id` | UUID | PK |
 | `user_id` | UUID | FK → `users`, bắt buộc |
-| `token_hash` | CHAR(64) | SHA‑256 của token; **UNIQUE**. Không lưu token gốc |
-| `expires_at` | TIMESTAMPTZ | Bắt buộc |
-| `revoked_at` | TIMESTAMPTZ | NULL = còn hiệu lực |
-| `replaced_by_id` | UUID | FK → `refresh_tokens`, NULL; dùng khi xoay vòng token |
+| `expires_at` | TIMESTAMPTZ | Bắt buộc; hạn tuyệt đối 30 ngày, refresh không kéo dài |
+| `revoked_at` | TIMESTAMPTZ | NULL = còn hiệu lực; đặt khi logout hoặc phát hiện dùng lại refresh |
 | `created_at` | TIMESTAMPTZ | Bắt buộc |
 
 Index: `(user_id)`.
+
+### `refresh_tokens`
+
+| Cột | Kiểu | Quy tắc |
+|---|---|---|
+| `id` | UUID | PK |
+| `session_id` | UUID | FK → `auth_sessions`, bắt buộc |
+| `token_hash` | CHAR(64) | SHA‑256 của token; **UNIQUE**. Không lưu token gốc |
+| `expires_at` | TIMESTAMPTZ | Bắt buộc; không vượt `auth_sessions.expires_at` |
+| `consumed_at` | TIMESTAMPTZ | NULL = chưa dùng; đặt khi đổi lấy token mới. Gửi lại token đã consumed → thu hồi mọi phiên của user (BR-A04) |
+| `revoked_at` | TIMESTAMPTZ | NULL = chưa bị thu hồi |
+| `created_at` | TIMESTAMPTZ | Bắt buộc |
+
+Index: `(session_id)`. Thay thiết kế ngày 2 (`user_id`, `replaced_by_id`): token gắn với phiên để logout thu hồi đúng một thiết bị.
 
 ### `password_reset_tokens`
 

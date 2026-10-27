@@ -36,7 +36,7 @@
 | `201` | Tạo thành công | |
 | `204` | Xóa/đăng xuất thành công, không body | |
 | `400` | Dữ liệu sai | `VALIDATION_ERROR`, `MALFORMED_JSON` |
-| `401` | Chưa xác thực/token sai/hết hạn | `UNAUTHORIZED`, `TOKEN_EXPIRED`, `INVALID_CREDENTIALS`, `INVALID_REFRESH_TOKEN` |
+| `401` | Chưa xác thực/token sai/hết hạn | `UNAUTHORIZED` (thiếu/sai/hết hạn access token, phiên đã thu hồi), `INVALID_CREDENTIALS`, `INVALID_REFRESH_TOKEN` |
 | `403` | Thiếu quyền chức năng / tài khoản khóa | `FORBIDDEN`, `ACCOUNT_LOCKED` |
 | `404` | Không tìm thấy hoặc không thuộc user | `NOT_FOUND`, `HEALTH_PROFILE_REQUIRED` |
 | `409` | Xung đột dữ liệu/trạng thái | `EMAIL_ALREADY_EXISTS`, `WORKOUT_ALREADY_LOGGED`, `INVALID_STATE`, `AI_REQUEST_IN_PROGRESS` |
@@ -115,7 +115,7 @@ Lỗi: `401 INVALID_REFRESH_TOKEN` (sai, hết hạn, đã thu hồi), `403 ACCO
 { "refreshToken": "opaque-random-string" }
 ```
 
-**204**. Không cần access token (có thể đã hết hạn). Thu hồi refresh token trong body; token không tồn tại hoặc đã thu hồi vẫn trả 204.
+**204**. Không cần access token (có thể đã hết hạn). Thu hồi phiên chứa refresh token trong body cùng mọi refresh token của phiên đó; access token của phiên bị từ chối ngay. Phiên trên thiết bị khác không ảnh hưởng. Token không tồn tại hoặc đã thu hồi vẫn trả 204.
 
 ### `POST /auth/forgot-password` — Public
 

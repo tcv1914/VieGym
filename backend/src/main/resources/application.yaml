@@ -18,3 +18,15 @@ spring:
 server:
   port: 8080
   address: 127.0.0.1
+
+viegym:
+  auth:
+    issuer: viegym-backend
+    audience: viegym-mobile
+    # BR-A03. Phiên có hạn tuyệt đối; refresh xoay vòng không kéo dài quá mốc này.
+    access-token-ttl: 15m
+    refresh-token-ttl: 30d
+    session-ttl: 30d
+    # Khóa nằm ngoài Git (infra/secrets/, đã ignore). Tạo khóa: docs/09-auth-design.md §6.
+    private-key-location: ${JWT_PRIVATE_KEY_LOCATION:file:../infra/secrets/jwt-private.pem}
+    public-key-location: ${JWT_PUBLIC_KEY_LOCATION:file:../infra/secrets/jwt-public.pem}
