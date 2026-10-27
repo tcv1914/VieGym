@@ -169,6 +169,7 @@ Kết quả tính từ `health_profiles`; ghi lại cùng giao dịch khi lưu h
 | `protein_g` | NUMERIC(5,1) | ≥ 0 |
 | `carbs_g` | NUMERIC(5,1) | ≥ 0 |
 | `fat_g` | NUMERIC(5,1) | ≥ 0 |
+| `kcal_floor_applied` | BOOLEAN | Bắt buộc; mục tiêu bị nâng lên ngưỡng dưới (`04-business-rules.md` §3.4). Thêm ở ngày 5 vì GET không tính lại |
 | `formula_version` | VARCHAR(20) | Ví dụ `MSJ-v1`; giúp truy vết khi đổi công thức |
 | `calculated_at` | TIMESTAMPTZ | Bắt buộc |
 | `created_at`, `updated_at` | TIMESTAMPTZ | Bắt buộc |

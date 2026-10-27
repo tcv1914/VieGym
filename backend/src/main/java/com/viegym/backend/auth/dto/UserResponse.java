@@ -13,9 +13,8 @@ public record UserResponse(
     String timezone,
     boolean hasHealthProfile
 ) {
-    public static UserResponse from(User user) {
-        // Bảng health_profiles có từ ngày 5; tới lúc đó user nào cũng chưa có hồ sơ.
+    public static UserResponse from(User user, boolean hasHealthProfile) {
         return new UserResponse(user.getId(), user.getEmail(), user.getFullName(), user.getRole(),
-            user.getTimezone(), false);
+            user.getTimezone(), hasHealthProfile);
     }
 }

@@ -47,7 +47,7 @@ public class AuthService {
         var user = new User(request.email(), passwordEncoder.encode(request.password()), request.fullName(),
             clock.instant());
         try {
-            return UserResponse.from(userRepository.saveAndFlush(user));
+            return UserResponse.from(userRepository.saveAndFlush(user), false);
         } catch (DataIntegrityViolationException ex) {
             throw emailAlreadyExists();
         }

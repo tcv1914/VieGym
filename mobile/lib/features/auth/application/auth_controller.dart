@@ -68,16 +68,3 @@ class AuthController extends AsyncNotifier<AuthState> {
 
 final authControllerProvider =
     AsyncNotifierProvider<AuthController, AuthState>(AuthController.new);
-
-/// Dữ liệu cá nhân phụ thuộc người dùng hiện tại: đổi tài khoản hay logout là tính lại,
-/// không còn dữ liệu của tài khoản trước.
-final meProvider = FutureProvider.autoDispose<AuthUser>(
-  (ref) {
-    final auth = ref.watch(authControllerProvider).value;
-    if (auth is! Authenticated) {
-      throw const SessionExpiredException();
-    }
-    return ref.read(authRepositoryProvider).me();
-  },
-  retry: (retryCount, error) => null,
-);

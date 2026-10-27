@@ -10,6 +10,7 @@ import com.viegym.backend.auth.repository.RefreshTokenRepository;
 import com.viegym.backend.common.exception.ApiException;
 import com.viegym.backend.common.security.AuthProperties;
 import com.viegym.backend.common.security.AuthenticatedUser;
+import com.viegym.backend.health.repository.HealthProfileRepository;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.UUID;
@@ -24,14 +25,17 @@ import org.springframework.transaction.annotation.Transactional;
 public class SessionService {
     private final AuthSessionRepository sessionRepository;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final HealthProfileRepository healthProfileRepository;
     private final TokenService tokenService;
     private final AuthProperties properties;
     private final Clock clock;
 
     public SessionService(AuthSessionRepository sessionRepository, RefreshTokenRepository refreshTokenRepository,
-                          TokenService tokenService, AuthProperties properties, Clock clock) {
+                          HealthProfileRepository healthProfileRepository, TokenService tokenService,
+                          AuthProperties properties, Clock clock) {
         this.sessionRepository = sessionRepository;
         this.refreshTokenRepository = refreshTokenRepository;
+        this.healthProfileRepository = healthProfileRepository;
         this.tokenService = tokenService;
         this.properties = properties;
         this.clock = clock;
@@ -109,7 +113,7 @@ public class SessionService {
             new RefreshToken(session, TokenService.hashRefreshToken(rawRefresh), now, refreshExpiresAt));
         String accessToken = tokenService.issueAccessToken(user.getId(), session.getId(), now);
         return new TokenResponse("Bearer", accessToken, tokenService.accessTokenTtlSeconds(), rawRefresh,
-            UserResponse.from(user));
+            UserResponse.from(user, healthProfileRepository.existsByUserId(user.getId())));
     }
 
     private static Instant min(Instant a, Instant b) {

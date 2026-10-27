@@ -190,7 +190,9 @@ Tạo mới hoặc cập nhật (idempotent).
 }
 ```
 
-**200**: cùng cấu trúc `GET`. Validation theo `04-business-rules.md` §3.1. Lỗi: `400 VALIDATION_ERROR`.
+**200**: cùng cấu trúc `GET`. Validation theo `04-business-rules.md` §3.1. Lỗi: `400 VALIDATION_ERROR` có `fieldErrors` theo trường, kể cả khi enum lạ hoặc ngày sai định dạng. Field lạ (`userId`, `bmi`, `targetKcal`…) bị bỏ qua. Cách tính: `11-health-calculation-rules.md`.
+
+`profile.age` là tuổi hôm nay theo múi giờ user; `targets` là kết quả lúc lưu gần nhất, GET không tính lại (BR-H04).
 
 ---
 
