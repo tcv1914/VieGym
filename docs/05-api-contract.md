@@ -55,7 +55,8 @@ Query: `page` (từ 0, mặc định 0), `size` (1–100, mặc định 20), `so
   "page": 0,
   "size": 20,
   "totalItems": 57,
-  "totalPages": 3
+  "totalPages": 3,
+  "hasNext": true
 }
 ```
 
@@ -225,20 +226,33 @@ Validation: `logDate` không ở tương lai; `weightKg` 30–300; `note` ≤ 50
 
 ### `GET /exercises` — User
 
-Query: `page`, `size`, `keyword` (không phân biệt dấu/hoa thường), `muscleGroup`, `equipment`, `difficulty`.
-Chỉ trả bài `is_active` (Admin dùng API admin để xem bài ẩn).
+Query (đều tùy chọn): `page`, `size`, `keyword` (≤ 100 ký tự sau chuẩn hóa; không phân biệt dấu/hoa thường, `%`/`_` được tìm như chữ thường), `muscleGroup`, `equipment`, `difficulty`. Các bộ lọc kết hợp AND; tham số rỗng = không lọc.
+Chỉ trả bài `is_active` (Admin dùng API admin để xem bài ẩn). Sắp xếp theo tên bỏ dấu rồi `id`.
 
 **200**: trang các phần tử
 
 ```json
-{ "id": "uuid", "name": "Squat với tạ đơn", "muscleGroup": "LEGS", "equipment": "DUMBBELL", "difficulty": "BEGINNER", "mediaUrl": null }
+{ "id": "uuid", "name": "Đẩy ngực với tạ đơn (Dumbbell Bench Press)", "muscleGroup": "CHEST", "equipment": "DUMBBELL", "difficulty": "BEGINNER", "thumbnailUrl": "http://…/media/exercises/0289-….jpg" }
 ```
 
-Lỗi: `400` khi enum lọc sai.
+Lỗi: `400 VALIDATION_ERROR` (`fieldErrors` theo tên tham số) khi enum lọc sai (phân biệt hoa/thường), `page` < 0 hoặc không phải số, `size` ngoài 1–100, `keyword` quá dài. Không có kết quả → `200` với `items` rỗng.
 
 ### `GET /exercises/{id}` — User
 
-**200**: phần tử trên + `"instructions": "..."`. Lỗi: `404` (bao gồm bài đã ẩn).
+**200**: phần tử trên + `"instructions"`, `"commonMistakes"` (mỗi dòng một ý), `"mediaType"` (`IMAGE`/`GIF`/`VIDEO`/null), `"mediaUrl"`, `"contentSource"`, `"mediaLicense"`. App phải hiển thị `mediaLicense` cạnh media.
+Lỗi: `400` khi `id` không phải UUID; `404 NOT_FOUND` khi không có hoặc bài đã ẩn.
+
+### `GET /exercise-filters` — User
+
+**200**: mã dùng trong query kèm nhãn hiển thị, để app không giữ bộ danh mục riêng.
+
+```json
+{ "muscleGroups": [ { "code": "CHEST", "name": "Ngực" } ], "equipment": [ { "code": "NONE", "name": "Không dụng cụ" } ], "difficulties": [ { "code": "BEGINNER", "name": "Cơ bản" } ] }
+```
+
+### Media — Public
+
+`GET /media/exercises/{file}`: ảnh/GIF tĩnh, không cần token (Image.network không gửi Bearer). URL lấy từ `thumbnailUrl`/`mediaUrl`, không tự ghép.
 
 ---
 
@@ -629,7 +643,7 @@ Tất cả yêu cầu role ADMIN; User gọi → `403 FORBIDDEN`. Không có `DE
 |---|---|
 | UC01 | `/auth/register`, `/auth/login`, `/auth/refresh`, `/auth/logout`, `/users/me` |
 | UC02 | `/health-profile/me` |
-| UC03 | `/exercises` |
+| UC03 | `/exercises`, `/exercise-filters` |
 | UC04 | `/workout-programs` |
 | UC05 | `/workout-schedules` |
 | UC06 | `/workout-logs` |

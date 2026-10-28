@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../features/auth/application/auth_controller.dart';
 import '../features/auth/presentation/login_page.dart';
-import '../features/health/presentation/health_home_page.dart';
+import 'home_shell.dart';
 
 class VieGymApp extends StatelessWidget {
   const VieGymApp({super.key});
@@ -18,7 +18,7 @@ class VieGymApp extends StatelessWidget {
   }
 }
 
-/// Chọn màn theo trạng thái phiên: khôi phục → đăng nhập / hồ sơ sức khỏe / lỗi mạng.
+/// Chọn màn theo trạng thái phiên: khôi phục → đăng nhập / các tab chính / lỗi mạng.
 class AuthGate extends ConsumerWidget {
   const AuthGate({super.key});
 
@@ -29,7 +29,7 @@ class AuthGate extends ConsumerWidget {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
     return switch (auth.value) {
-      Authenticated() => const HealthHomePage(),
+      Authenticated() => const HomeShell(),
       Unauthenticated(:final message) => LoginPage(message: message),
       RestoreFailed(:final message) => _RestoreFailedPage(message: message),
       null => const Scaffold(body: Center(child: CircularProgressIndicator())),

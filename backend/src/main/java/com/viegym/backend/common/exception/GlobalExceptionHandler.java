@@ -14,6 +14,7 @@ import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.exc.MismatchedInputException;
@@ -57,6 +58,14 @@ public class GlobalExceptionHandler {
         }
         return ResponseEntity.badRequest()
             .body(ApiError.of("MALFORMED_JSON", "Nội dung request không đúng định dạng JSON", request.getRequestURI()));
+    }
+
+    /** Query/path sai kiểu: enum lạ, UUID sai định dạng, page không phải số. */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    ResponseEntity<ApiError> handleTypeMismatch(MethodArgumentTypeMismatchException ex, HttpServletRequest request) {
+        var body = new ApiError("VALIDATION_ERROR", "Dữ liệu không hợp lệ",
+            Map.of(ex.getName(), "Giá trị không hợp lệ"), Instant.now(), request.getRequestURI());
+        return ResponseEntity.badRequest().body(body);
     }
 
     @ExceptionHandler(NoResourceFoundException.class)

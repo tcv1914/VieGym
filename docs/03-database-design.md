@@ -194,17 +194,22 @@ Ràng buộc: **UNIQUE (`user_id`, `log_date`)** — nhập lại cùng ngày th
 | Cột | Kiểu | Quy tắc |
 |---|---|---|
 | `id` | UUID | PK |
+| `code` | VARCHAR(100) | Bắt buộc, UNIQUE; mã ổn định cho seed/import (ngày 6) |
 | `name` | VARCHAR(150) | Bắt buộc; UNIQUE theo `lower(name)` |
 | `name_search` | VARCHAR(150) | Tên bỏ dấu, lowercase — phục vụ tìm kiếm tiếng Việt |
 | `muscle_group` | VARCHAR(20) | `CHEST` \| `BACK` \| `SHOULDERS` \| `ARMS` \| `LEGS` \| `GLUTES` \| `CORE` \| `FULL_BODY` \| `CARDIO` |
 | `equipment` | VARCHAR(20) | `NONE` \| `DUMBBELL` \| `BARBELL` \| `MACHINE` \| `CABLE` \| `BAND` \| `OTHER` |
 | `difficulty` | VARCHAR(12) | `BEGINNER` \| `INTERMEDIATE` \| `ADVANCED` |
-| `instructions` | TEXT | Bắt buộc |
-| `media_url` | VARCHAR(500) | NULL |
+| `instructions` | TEXT | Bắt buộc; mỗi dòng một bước |
+| `common_mistakes` | TEXT | Bắt buộc; mỗi dòng một lỗi (ngày 6) |
+| `thumbnail_url` | VARCHAR(500) | NULL; ảnh nhỏ cho danh sách (ngày 6) |
+| `media_type` | VARCHAR(10) | `IMAGE` \| `GIF` \| `VIDEO`; NULL khi và chỉ khi `media_url` NULL (ngày 6) |
+| `media_url` | VARCHAR(500) | NULL; URL tuyệt đối hoặc key tương đối dưới `/media/` (backend ghép host) |
 | `is_active` | BOOLEAN | Mặc định `true`; ẩn thay vì xóa |
+| `content_source`, `media_license` | VARCHAR(500) | NULL; nguồn nội dung và quyền dùng media (ngày 6) |
 | `created_at`, `updated_at` | TIMESTAMPTZ | Bắt buộc |
 
-Index: `(muscle_group)`, `(name_search)` (có thể dùng `pg_trgm` nếu cần tìm gần đúng).
+Index: `(is_active, muscle_group, equipment, difficulty)`. Tìm tên dùng `LIKE '%…%'` trên `name_search`, B-tree không hỗ trợ; vài chục bài thì quét bảng là đủ, cần thì thêm `pg_trgm`. Chi tiết: `13-exercise-library-design.md`.
 
 ### `workout_programs`
 

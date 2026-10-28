@@ -1,0 +1,2 @@
+# Migration chứa chuỗi nhiều dòng (hướng dẫn bài tập): giữ LF để DB tạo từ bản clone mới không lẫn ký tự CR.
+*.sql text eol=lf

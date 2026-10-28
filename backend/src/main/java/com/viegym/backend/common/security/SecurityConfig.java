@@ -38,6 +38,8 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.GET, "/api/v1/system/health").permitAll()
+                // Ảnh/GIF bài tập: Image.network không gửi Bearer; chỉ chứa media công khai.
+                .requestMatchers(HttpMethod.GET, "/media/**").permitAll()
                 .requestMatchers(HttpMethod.POST, PUBLIC_AUTH_ENDPOINTS).permitAll()
                 .requestMatchers("/error").permitAll()
                 .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
@@ -65,7 +67,8 @@ public class SecurityConfig {
 
     private static boolean isPublic(HttpServletRequest request) {
         String path = request.getRequestURI().substring(request.getContextPath().length());
-        return path.startsWith("/api/v1/auth/") || path.equals("/api/v1/system/health");
+        return path.startsWith("/api/v1/auth/") || path.equals("/api/v1/system/health")
+            || path.startsWith("/media/");
     }
 
     @Bean
