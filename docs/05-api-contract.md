@@ -264,6 +264,8 @@ Mặc định `mine`. **200**: `{ "items": [ { "id", "name", "description", "isT
 
 ### `GET /workout-programs/{id}` — User
 
+[Ngày 7] Response có thêm `sourceTemplateId`, `version`; mỗi bài có thêm `exerciseActive` (false = bài đã bị ẩn, cần thay) và `thumbnailUrl`. Chỉ trả buổi chưa archived.
+
 Đọc được giáo án của mình hoặc giáo án mẫu.
 
 **200**
@@ -318,7 +320,14 @@ Lỗi: `400`, `404` (template không tồn tại), `422 EXERCISE_INACTIVE`.
 ### `PUT /workout-programs/{id}` — User
 
 Body như tạo tự do (`name`, `description`, `activate`, `days`). Buổi có sẵn gửi kèm `id` để giữ nguyên; buổi không có trong body bị gỡ (archive nếu còn lịch tham chiếu — BR-W07).
-**200**. Lỗi: `400`, `403 FORBIDDEN` khi sửa giáo án mẫu, `404`, `422 EXERCISE_INACTIVE`.
+[Ngày 7] Thêm `version` **bắt buộc** (lấy từ GET); `activate` null = giữ trạng thái.
+**200**, kèm `version` mới. Lỗi: `400`, `403 FORBIDDEN` khi sửa giáo án mẫu, `404`, `409 VERSION_CONFLICT` (version cũ), `422 EXERCISE_INACTIVE`.
+
+### `POST /workout-programs/{id}/activate` — User [Thêm ngày 7]
+
+Kích hoạt giáo án của mình, tự tắt giáo án đang active (BR-W01); đã active thì không đổi. **200**: như GET. Lỗi: `403` (mẫu), `404`.
+
+Giới hạn MVP: 20 giáo án/user → `409 INVALID_STATE` khi tạo thêm.
 
 ---
 
@@ -326,7 +335,7 @@ Body như tạo tự do (`name`, `description`, `activate`, `days`). Buổi có 
 
 ### `GET /workout-schedules?from=YYYY-MM-DD&to=YYYY-MM-DD&status=` — User
 
-Khoảng tối đa 62 ngày; mặc định tuần hiện tại (thứ Hai–Chủ nhật).
+Khoảng đóng [from, to], tối đa 62 ngày; không gửi cả hai = tuần hiện tại (thứ Hai–Chủ nhật) theo múi giờ user; chỉ gửi một → 400. Sắp xếp theo ngày, giờ (null cuối), id. [Ngày 7] Response có thêm `from`, `to`; `workoutDay` có thêm `programId`, `archived`.
 
 **200**
 
@@ -352,7 +361,7 @@ Khoảng tối đa 62 ngày; mặc định tuần hiện tại (thứ Hai–Ch�
 { "workoutDayId": "uuid", "scheduledDate": "2026-10-20", "startTime": "18:00", "note": null }
 ```
 
-**201**: phần tử như trên. Lỗi: `400`, `404` (buổi không thuộc user), `409 INVALID_STATE` (buổi đã archived).
+**201**: như `GET /workout-schedules/{id}`. Lỗi: `400` (ngày đã qua theo múi giờ user, quá 5 lịch chưa hủy/ngày), `404` (buổi không thuộc user), `409 INVALID_STATE` (buổi đã archived), `422 EXERCISE_INACTIVE` (buổi có bài bị ẩn) [Ngày 7].
 
 ### `GET /workout-schedules/{id}` — User
 
@@ -365,7 +374,8 @@ Khoảng tối đa 62 ngày; mặc định tuần hiện tại (thứ Hai–Ch�
 ```
 
 `status` chỉ nhận `SCHEDULED` (giữ) hoặc `CANCELLED`. **Không** nhận `COMPLETED` — hoàn thành chỉ qua `POST /workout-logs` (BR-W04).
-**200**. Lỗi: `400` (gửi `COMPLETED`), `404`, `409 INVALID_STATE` (lịch đã COMPLETED/CANCELLED).
+Khi `CANCELLED` chỉ đổi trạng thái, ngày/giờ/ghi chú trong body bị bỏ qua. Đổi sang ngày khác phải là hôm nay trở đi.
+**200**. Lỗi: `400` (gửi `COMPLETED`, ngày mới đã qua), `404`, `409 INVALID_STATE` (lịch đã COMPLETED/CANCELLED).
 
 ---
 

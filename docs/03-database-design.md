@@ -222,9 +222,10 @@ Index: `(is_active, muscle_group, equipment, difficulty)`. Tìm tên dùng `LIKE
 | `is_template` | BOOLEAN | `true` khi `user_id IS NULL` (CHECK đảm bảo đồng nhất) |
 | `is_active` | BOOLEAN | Mặc định `false` |
 | `source_template_id` | UUID | FK → `workout_programs`, NULL; giáo án mẫu được sao chép từ đâu |
+| `version` | INTEGER | Mặc định 0; khóa lạc quan (JPA `@Version`), PUT gửi kèm, lệch → 409 [Thêm ngày 7, docs/16] |
 | `created_at`, `updated_at` | TIMESTAMPTZ | Bắt buộc |
 
-Ràng buộc: **partial UNIQUE (`user_id`) WHERE `is_active`** — một giáo án đang hoạt động/user.
+Ràng buộc: **partial UNIQUE (`user_id`) WHERE `is_active`** — một giáo án đang hoạt động/user; CHECK `is_template = (user_id IS NULL)` và mẫu không active.
 User "chọn giáo án mẫu" = backend **sao chép** mẫu thành giáo án của user; sửa bản sao không ảnh hưởng mẫu.
 
 ### `workout_days`
@@ -254,6 +255,7 @@ Ràng buộc: partial UNIQUE (`program_id`, `day_order`) WHERE `archived_at IS N
 | `rest_seconds` | SMALLINT | 0–600 |
 | `created_at`, `updated_at` | TIMESTAMPTZ | Bắt buộc |
 
+Thêm ngày 7: UNIQUE (`workout_day_id`, `exercise_id`) — một bài không lặp trong cùng buổi.
 Khi sửa giáo án: xóa toàn bộ `workout_exercises` của buổi rồi INSERT lại theo body (không UPDATE `order_no` từng dòng). An toàn vì log không tham chiếu bảng này.
 
 ### `workout_schedules`

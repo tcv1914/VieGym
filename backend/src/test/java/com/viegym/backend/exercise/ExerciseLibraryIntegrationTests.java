@@ -212,7 +212,7 @@ class ExerciseLibraryIntegrationTests {
     @Test
     void seedIsConsistent() {
         List<Map<String, Object>> rows = jdbc.queryForList(
-            "select code, name, name_search from exercises where code <> 'test-inactive'");
+            "select code, name, name_search from exercises where code not like 'test-%'");
         assertThat(rows).hasSize(SEEDED_ACTIVE);
         assertThat(rows).allSatisfy(row ->
             assertThat(row.get("name_search")).as((String) row.get("code"))

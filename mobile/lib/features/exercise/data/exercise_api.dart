@@ -12,10 +12,14 @@ class ExerciseApi {
   static const pageSize = 20;
 
   /// Query string do [Uri] encode, không nối chuỗi tay (keyword có dấu, &, %...).
-  Future<ExercisePage> search(ExerciseQuery query, {required int page}) async {
+  Future<ExercisePage> search(
+    ExerciseQuery query, {
+    required int page,
+    int size = pageSize,
+  }) async {
     final path = Uri(
       path: '/api/v1/exercises',
-      queryParameters: query.toQueryParameters(page: page, size: pageSize),
+      queryParameters: query.toQueryParameters(page: page, size: size),
     ).toString();
     return ExercisePage.fromJson((await _auth.authorizedRequest('GET', path))!);
   }
