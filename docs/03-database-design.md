@@ -282,11 +282,12 @@ Index: (`user_id`, `scheduled_date`).
 | `schedule_id` | UUID | FK → `workout_schedules`; **UNIQUE** — chống tạo trùng log cho một lịch. NULL dành cho tập tự do (ngoài MVP) |
 | `workout_date` | DATE | Bắt buộc; lấy từ `scheduled_date` |
 | `workout_name_snapshot` | VARCHAR(100) | Tên buổi lúc hoàn thành |
+| `program_name_snapshot` | VARCHAR(100) | Tên giáo án lúc hoàn thành [Ngày 8] |
 | `started_at`, `ended_at` | TIMESTAMPTZ | NULL; CHECK `ended_at >= started_at` khi cả hai có giá trị |
 | `note` | VARCHAR(1000) | NULL |
 | `created_at` | TIMESTAMPTZ | Bắt buộc |
 
-Index: (`user_id`, `workout_date`).
+Index: (`user_id`, `workout_date` DESC, `created_at` DESC). Ngày 8: thêm UNIQUE (`workout_log_id`, `exercise_id`) ở `workout_log_exercises` (một bài một lần trong log). Thiết kế: `18-workout-log-design.md`.
 
 ### `workout_log_exercises`
 

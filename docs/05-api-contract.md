@@ -366,6 +366,7 @@ Khoảng đóng [from, to], tối đa 62 ngày; không gửi cả hai = tuần h
 ### `GET /workout-schedules/{id}` — User
 
 **200**: phần tử như trên + `"exercises"` của buổi (giống `days[].exercises`) để mở màn ghi nhận. Lỗi: `404`.
+[Ngày 8] `workoutLogId` (cả danh sách và chi tiết) là id log khi lịch đã `COMPLETED`, còn lại `null`.
 
 ### `PUT /workout-schedules/{id}` — User
 
@@ -403,23 +404,27 @@ Khi `CANCELLED` chỉ đổi trạng thái, ngày/giờ/ghi chú trong body bị
 ```
 
 **201**: cấu trúc như `GET /workout-logs/{id}`. Lịch chuyển `COMPLETED` cùng giao dịch.
-Validation: 1–20 bài, mỗi bài 1–20 set; `reps` 1–1000; `weightKg` 0–999,99; `endedAt ≥ startedAt`; `note` ≤ 1000.
+Validation: 1–20 bài (không trùng `exerciseId`), mỗi bài 1–20 set; `reps` nguyên 1–1000; `weightKg` bắt buộc 0–999,99, tối đa 2 số lẻ; `startedAt`/`endedAt` tùy chọn, không ở tương lai (dung sai 5 phút), `endedAt ≥ startedAt`, ≤ 24 giờ; `note` ≤ 1000. Client không gửi `setNo`/`orderNo` (server đánh theo thứ tự mảng).
 Lỗi:
-- `400 VALIDATION_ERROR`
+- `400 VALIDATION_ERROR` — `fieldErrors` theo đường dẫn, vd. `exercises[0].sets[1].reps`
 - `404` — lịch không tồn tại/không thuộc user
-- `409 INVALID_STATE` — lịch đã hủy
-- `409 WORKOUT_ALREADY_LOGGED` — kèm `"workoutLogId": "uuid"` để app mở log hiện có
-- `422 EXERCISE_INACTIVE`
+- `409 INVALID_STATE` — lịch đã hủy, hoặc chưa tới ngày của lịch (BR-W09)
+- `409 WORKOUT_ALREADY_LOGGED` — kèm `"workoutLogId": "uuid"` ở cấp gốc body lỗi để app mở log hiện có. Áp dụng cho **mọi** lần gửi lặp, dù nội dung giống hay khác; log đã lưu không bị đổi
+- `422 EXERCISE_INACTIVE` — bài ngoài buổi đã bị ẩn (bài trong buổi đã ẩn vẫn ghi được)
+
+Sau khi mất mạng, app xác minh bằng `GET /workout-schedules/{id}`: `workoutLogId` khác null nghĩa là đã lưu. [Ngày 8]
 
 ### `GET /workout-logs?from=&to=&page=&size=` — User
 
-Sắp xếp `workoutDate` giảm dần. **200**: trang các phần tử
+`from`/`to`: khoảng đóng theo `workoutDate`, mỗi đầu tùy chọn; gửi cả hai thì tối đa 366 ngày, `from > to` → 400. Phân trang §1.2. Sắp xếp `workoutDate` giảm dần (rồi thời điểm ghi). **200**: trang các phần tử
 
 ```json
-{ "id": "uuid", "workoutDate": "2026-10-20", "workoutName": "Buổi A", "exerciseCount": 4, "setCount": 12, "totalVolumeKg": 1180.0 }
+{ "id": "uuid", "scheduleId": "uuid", "workoutDate": "2026-10-20", "workoutName": "Buổi A", "programName": "Full Body cơ bản",
+  "startedAt": "2026-10-20T11:00:00Z", "endedAt": "2026-10-20T11:50:00Z",
+  "exerciseCount": 4, "setCount": 12, "totalReps": 120, "totalVolumeKg": 1180.00 }
 ```
 
-`totalVolumeKg = Σ reps × weightKg`.
+`totalVolumeKg = Σ reps × weightKg` — chỉ tạ ngoài; bài không tạ góp 0 vào volume nhưng vẫn tính trong `totalReps`.
 
 ### `GET /workout-logs/{id}` — User
 
@@ -431,9 +436,12 @@ Sắp xếp `workoutDate` giảm dần. **200**: trang các phần tử
   "scheduleId": "uuid",
   "workoutDate": "2026-10-20",
   "workoutName": "Buổi A",
+  "programName": "Full Body cơ bản",
   "startedAt": "2026-10-20T11:00:00Z",
   "endedAt": "2026-10-20T11:50:00Z",
   "note": "Hoàn thành buổi tập đầu tiên",
+  "createdAt": "2026-10-20T11:51:02Z",
+  "exerciseCount": 1, "setCount": 1, "totalReps": 10, "totalVolumeKg": 100.00,
   "exercises": [
     {
       "orderNo": 1,

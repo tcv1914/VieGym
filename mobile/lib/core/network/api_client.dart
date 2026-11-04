@@ -14,6 +14,7 @@ class ApiException implements Exception {
     this.statusCode,
     this.code,
     this.fieldErrors = const {},
+    this.data = const {},
   });
 
   factory ApiException.fromResponse(int statusCode, Object? body) {
@@ -26,6 +27,7 @@ class ApiException implements Exception {
         fieldErrors: fields is Map
             ? fields.map((k, v) => MapEntry(k as String, v.toString()))
             : const {},
+        data: body,
       );
     }
     return ApiException('Backend trả mã $statusCode', statusCode: statusCode);
@@ -35,6 +37,9 @@ class ApiException implements Exception {
   final int? statusCode;
   final String? code;
   final Map<String, String> fieldErrors;
+
+  /// Toàn bộ body lỗi, cho các trường riêng của từng API (vd. `workoutLogId`).
+  final Map<String, dynamic> data;
 
   @override
   String toString() => message;

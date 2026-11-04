@@ -80,6 +80,16 @@ public class WorkoutSchedule {
         this.updatedAt = now;
     }
 
+    /** Chỉ gọi từ ghi nhận buổi tập, cùng giao dịch với việc tạo log (BR-W04, BR-W05). */
+    public void complete(Instant now) {
+        this.status = ScheduleStatus.COMPLETED;
+        this.updatedAt = now;
+    }
+
+    public UUID getUserId() {
+        return userId;
+    }
+
     public UUID getId() {
         return id;
     }

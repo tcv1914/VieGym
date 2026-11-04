@@ -14,6 +14,7 @@ import com.viegym.backend.workout.entity.WorkoutDay;
 import com.viegym.backend.workout.entity.WorkoutExercise;
 import com.viegym.backend.workout.entity.WorkoutSchedule;
 import com.viegym.backend.workout.repository.WorkoutDayRepository;
+import com.viegym.backend.workout.repository.WorkoutLogRepository;
 import com.viegym.backend.workout.repository.WorkoutScheduleRepository;
 import java.time.Clock;
 import java.time.DayOfWeek;
@@ -22,6 +23,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAdjusters;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,15 +47,17 @@ public class WorkoutScheduleService {
     private final WorkoutDayRepository dayRepository;
     private final WorkoutScheduleRepository scheduleRepository;
     private final WorkoutProgramService programService;
+    private final WorkoutLogRepository logRepository;
     private final Clock clock;
 
     public WorkoutScheduleService(UserRepository userRepository, WorkoutDayRepository dayRepository,
                                   WorkoutScheduleRepository scheduleRepository, WorkoutProgramService programService,
-                                  Clock clock) {
+                                  WorkoutLogRepository logRepository, Clock clock) {
         this.userRepository = userRepository;
         this.dayRepository = dayRepository;
         this.scheduleRepository = scheduleRepository;
         this.programService = programService;
+        this.logRepository = logRepository;
         this.clock = clock;
     }
 
@@ -75,7 +79,9 @@ public class WorkoutScheduleService {
         List<WorkoutSchedule> schedules = status == null
             ? scheduleRepository.findInRange(userId, from, to)
             : scheduleRepository.findInRange(userId, from, to, status);
-        return new ScheduleList(from, to, schedules.stream().map(WorkoutScheduleService::toItem).toList());
+        Map<UUID, UUID> logIds = logIds(schedules.stream().filter(s -> s.getStatus() == ScheduleStatus.COMPLETED)
+            .map(WorkoutSchedule::getId).toList());
+        return new ScheduleList(from, to, schedules.stream().map(s -> toItem(s, logIds.get(s.getId()))).toList());
     }
 
     @Transactional(readOnly = true)
@@ -186,15 +192,26 @@ public class WorkoutScheduleService {
         return clock.instant().truncatedTo(ChronoUnit.MICROS);
     }
 
-    private static ScheduleItem toItem(WorkoutSchedule s) {
+    private static ScheduleItem toItem(WorkoutSchedule s, UUID workoutLogId) {
         return new ScheduleItem(s.getId(), s.getScheduledDate(), s.getStartTime(), s.getStatus(), s.getNote(),
-            dayRef(s.getWorkoutDay()), null);
+            dayRef(s.getWorkoutDay()), workoutLogId);
     }
 
+    /** {@code workoutLogId} cho phép app xác minh sau khi mất mạng lúc ghi buổi tập (docs/18 §4). */
     private ScheduleDetail toDetail(WorkoutSchedule s) {
         WorkoutDay day = s.getWorkoutDay();
+        UUID logId = s.getStatus() == ScheduleStatus.COMPLETED ? logIds(List.of(s.getId())).get(s.getId()) : null;
         return new ScheduleDetail(s.getId(), s.getScheduledDate(), s.getStartTime(), s.getStatus(), s.getNote(),
-            dayRef(day), null, programService.toExerciseItems(day));
+            dayRef(day), logId, programService.toExerciseItems(day));
+    }
+
+    private Map<UUID, UUID> logIds(List<UUID> scheduleIds) {
+        if (scheduleIds.isEmpty()) {
+            return Map.of();
+        }
+        Map<UUID, UUID> result = new HashMap<>();
+        logRepository.logIdsBySchedule(scheduleIds).forEach(r -> result.put((UUID) r[0], (UUID) r[1]));
+        return result;
     }
 
     private static DayRef dayRef(WorkoutDay day) {

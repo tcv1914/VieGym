@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/format/date_format.dart';
 import '../../../auth/presentation/logout_button.dart';
+import '../../log/presentation/log_history_page.dart';
 import '../../workout_widgets.dart';
 import '../application/schedule_providers.dart';
 import '../data/schedule_models.dart';
@@ -53,7 +54,17 @@ class _ScheduleWeekPageState extends ConsumerState<ScheduleWeekPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Lịch tập'),
-        actions: const [LogoutButton()],
+        actions: [
+          IconButton(
+            key: const Key('open-history'),
+            tooltip: 'Lịch sử tập',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const LogHistoryPage()),
+            ),
+            icon: const Icon(Icons.history),
+          ),
+          const LogoutButton(),
+        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         key: const Key('schedule-create'),

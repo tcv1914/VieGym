@@ -141,7 +141,7 @@ Ca 2 — biên trần protein: Nữ, 80 tuổi, 100 cm, 300 kg, `SEDENTARY`, `LO
 | BR-W05 | Hoàn thành buổi tập: khóa dòng lịch, tạo log + bài + set, đổi lịch sang COMPLETED trong một giao dịch (WO-BR03). |
 | BR-W06 | Gửi lặp: lịch đã COMPLETED hoặc vi phạm UNIQUE `schedule_id` → `409 WORKOUT_ALREADY_LOGGED` kèm `workoutLogId` để app mở log hiện có. |
 | BR-W07 | Sửa giáo án: thay thế danh sách buổi/bài. Buổi bị gỡ mà còn lịch tham chiếu thì archive (`archived_at`) thay vì xóa; lịch `SCHEDULED` của buổi bị gỡ vẫn tập được theo bài hiện có của buổi đó. Log cũ không bị ảnh hưởng nhờ snapshot. |
-| BR-W08 | Ghi log: `reps` 1–1000, `weightKg` 0–999,99, ít nhất 1 bài và 1 set; `setNo`/`orderNo` liên tục từ 1 do backend đánh lại theo thứ tự gửi lên. Cho phép bài ngoài kế hoạch nhưng phải là bài đang hoạt động. |
+| BR-W08 | Ghi log: `reps` 1–1000, `weightKg` 0–999,99, ít nhất 1 bài và 1 set; `setNo`/`orderNo` liên tục từ 1 do backend đánh lại theo thứ tự gửi lên. Cho phép bài ngoài kế hoạch nhưng phải là bài đang hoạt động. [Ngày 8] Bài **trong buổi** của lịch vẫn ghi được dù đã bị ẩn sau khi xếp lịch; một bài không lặp trong cùng log; `weightKg` bắt buộc (bỏ trống ≠ 0), tối đa 2 số lẻ; `startedAt`/`endedAt` không ở tương lai, ≤ 24 giờ (docs/18 §2). |
 | BR-W09 | Không cho ghi log cho lịch có `scheduled_date` ở tương lai (theo múi giờ user). [Đã chốt] |
 
 ## 5. Dinh dưỡng

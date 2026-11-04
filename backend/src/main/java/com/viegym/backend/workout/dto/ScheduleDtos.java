@@ -50,7 +50,7 @@ public final class ScheduleDtos {
     public record ScheduleList(LocalDate from, LocalDate to, List<ScheduleItem> items) {
     }
 
-    /** {@code workoutLogId} luôn null đến ngày 8. */
+    /** {@code workoutLogId}: id log khi lịch đã COMPLETED (ngày 8), còn lại null. */
     public record ScheduleItem(UUID id, LocalDate scheduledDate, @JsonFormat(pattern = "HH:mm") LocalTime startTime,
                                ScheduleStatus status, String note, DayRef workoutDay, UUID workoutLogId) {
     }

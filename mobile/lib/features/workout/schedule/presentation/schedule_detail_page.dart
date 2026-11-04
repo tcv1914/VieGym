@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/format/date_format.dart';
 import '../../program/data/program_models.dart';
 import '../../program/presentation/program_detail_page.dart';
+import '../../log/presentation/log_detail_page.dart';
+import '../../log/presentation/log_form_page.dart';
 import '../../workout_widgets.dart';
 import '../application/schedule_providers.dart';
 import '../data/schedule_api.dart';
@@ -11,8 +13,8 @@ import '../data/schedule_models.dart';
 import 'schedule_form_page.dart';
 import 'schedule_week_page.dart';
 
-/// Chi tiết lịch: bài của buổi, dời ngày giờ, hủy. Không có nút "đã tập" — hoàn thành
-/// chỉ qua ghi nhận buổi tập (ngày 8).
+/// Chi tiết lịch: bài của buổi, bắt đầu ghi buổi tập, dời ngày giờ, hủy. Không có nút
+/// "đánh dấu đã tập" — COMPLETED chỉ có cùng kết quả đã lưu (BR-W04).
 class ScheduleDetailPage extends ConsumerStatefulWidget {
   const ScheduleDetailPage({super.key, required this.id});
 
@@ -34,6 +36,18 @@ class _ScheduleDetailPageState extends ConsumerState<ScheduleDetailPage> {
       ref.invalidate(weekSchedulesProvider);
     }
   }
+
+  Future<void> _startLog(ScheduleDetail detail) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => LogFormPage(schedule: detail)),
+    );
+    // Có thể đã lưu (lịch thành COMPLETED) hoặc lịch bị đổi ở nơi khác.
+    ref.invalidate(scheduleDetailProvider(widget.id));
+  }
+
+  void _openLog(String logId) => Navigator.of(context).push(
+    MaterialPageRoute(builder: (_) => LogDetailPage(id: logId)),
+  );
 
   Future<void> _cancel(ScheduleDetail detail) async {
     final s = detail.item;
@@ -127,7 +141,17 @@ class _ScheduleDetailPageState extends ConsumerState<ScheduleDetailPage> {
                 const Padding(
                   padding: EdgeInsets.only(top: 8),
                   child: Text(
-                    'Ngày tập đã qua. Bạn có thể dời sang ngày khác hoặc hủy lịch.',
+                    'Ngày tập đã qua. Bạn vẫn ghi lại được kết quả nếu đã tập, hoặc dời sang ngày khác / hủy lịch.',
+                  ),
+                ),
+              if (s.status == ScheduleStatus.completed && s.workoutLogId != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: FilledButton.icon(
+                    key: const Key('schedule-view-log'),
+                    onPressed: () => _openLog(s.workoutLogId!),
+                    icon: const Icon(Icons.fact_check_outlined),
+                    label: const Text('Xem kết quả đã ghi'),
                   ),
                 ),
               const SizedBox(height: 8),
@@ -142,7 +166,19 @@ class _ScheduleDetailPageState extends ConsumerState<ScheduleDetailPage> {
               ),
               if (editable) ...[
                 const SizedBox(height: 16),
+                // BR-W09: chưa tới ngày thì chưa ghi được; muốn tập sớm thì dời lịch về hôm nay.
                 FilledButton.icon(
+                  key: const Key('schedule-start-log'),
+                  onPressed: _busy || s.date.isAfter(now)
+                      ? null
+                      : () => _startLog(d),
+                  icon: const Icon(Icons.play_arrow),
+                  label: Text(
+                    s.date.isAfter(now) ? 'Chưa tới ngày tập' : 'Bắt đầu tập',
+                  ),
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
                   key: const Key('schedule-reschedule'),
                   onPressed: _busy ? null : () => _reschedule(d),
                   icon: const Icon(Icons.edit_calendar),
