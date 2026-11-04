@@ -461,27 +461,38 @@ Lỗi: `404`.
 
 ### `GET /foods` — User
 
-Query: `page`, `size`, `keyword` (không phân biệt dấu). Chỉ món `is_active`.
+Query: `page`, `size`, `keyword` (không phân biệt dấu, ≤ 100 ký tự), [Ngày 9] `category` (mã danh mục), `region` (`VPF`|`HAN`|`HAP`|`SFF`). Chỉ món `is_active`. Sắp theo tên bỏ dấu rồi id. Mã lọc lạ → `400 VALIDATION_ERROR`; không có kết quả → `200` `items` rỗng.
 
 **200**: trang các phần tử
 
 ```json
 {
   "id": "uuid",
-  "name": "Phở bò",
-  "servingSize": 500,
-  "servingUnit": "g",
-  "servingDescription": "1 tô vừa",
-  "kcalPerServing": 430,
-  "proteinPerServing": 25,
-  "carbsPerServing": 55,
-  "fatPerServing": 12
+  "code": "VPF-000272",
+  "name": "Phở bò tái 24h",
+  "category": { "code": "BANH_DA_BUN_PHO", "name": "Bánh đa, bún, phở" },
+  "region": { "code": "VPF", "name": "Toàn quốc" },
+  "servingDescription": "1 phần ăn theo nguồn",
+  "servingSize": null,
+  "servingUnit": null,
+  "kcalPerServing": 314.00,
+  "proteinPerServing": 18.70,
+  "carbsPerServing": 47.40,
+  "fatPerServing": 5.50,
+  "dataQuality": "SOURCED",
+  "imageUrl": "https://viendinhduong.vn/storage/app/uploads/…webp"
 }
 ```
 
+Mọi số dinh dưỡng là của **một khẩu phần** `servingDescription`; `servingSize`/`servingUnit` null khi nguồn không ghi khối lượng (docs/20 §2).
+
 ### `GET /foods/{id}` — User
 
-**200**: phần tử trên + `"source"`. Lỗi: `404` (bao gồm món đã ẩn).
+**200**: phần tử trên + `"nameEn"`, `"source"`, `"sourceUrl"`, `"revision"`. Lỗi: `404` (bao gồm món đã ẩn).
+
+### `GET /food-filters` — User [Ngày 9]
+
+**200**: `{ "categories": [ { "code", "name" } ], "regions": [ { "code": "VPF", "name": "Toàn quốc" } ] }` — chỉ danh mục còn món hiển thị.
 
 ---
 

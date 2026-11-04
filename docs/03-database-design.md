@@ -318,18 +318,28 @@ Index: (`user_id`, `workout_date` DESC, `created_at` DESC). Ngày 8: thêm UNIQU
 | Cột | Kiểu | Quy tắc |
 |---|---|---|
 | `id` | UUID | PK |
-| `name` | VARCHAR(150) | Bắt buộc; UNIQUE theo `lower(name)` |
+| `code` | VARCHAR(30) | [Ngày 9] Mã nguồn (vd. `VPF-000272`), UNIQUE — khóa nhập lại |
+| `name` | VARCHAR(150) | Bắt buộc. [Ngày 9] **Không** UNIQUE: nguồn có cùng món đo ở vùng khác (docs/20 §2) |
+| `name_en` | VARCHAR(200) | [Ngày 9] NULL |
 | `name_search` | VARCHAR(150) | Bỏ dấu, lowercase — "pho bo" tìm được "Phở bò" |
-| `serving_size` | NUMERIC(7,2) | > 0, ví dụ 500 |
+| `category_id` | UUID | [Ngày 9] FK → `food_categories` (code, name, sort_order) |
+| `region` | VARCHAR(3) | [Ngày 9] Vùng đo nguồn `VPF`/`HAN`/`HAP`/`SFF` |
+| `serving_size` | NUMERIC(7,2) | > 0, ví dụ 500. [Ngày 9] NULL khi nguồn không ghi khối lượng (cùng NULL với unit) |
 | `serving_unit` | VARCHAR(20) | `g` \| `ml` |
-| `serving_description` | VARCHAR(100) | Ví dụ "1 tô vừa" |
+| `serving_description` | VARCHAR(100) | Ví dụ "1 tô vừa", "1 phần ăn theo nguồn" |
 | `kcal_per_serving` | NUMERIC(7,2) | ≥ 0 |
 | `protein_per_serving` | NUMERIC(6,2) | gram, ≥ 0 |
 | `carbs_per_serving` | NUMERIC(6,2) | gram, ≥ 0 |
 | `fat_per_serving` | NUMERIC(6,2) | gram, ≥ 0 |
-| `source` | VARCHAR(200) | Nguồn dữ liệu dinh dưỡng, bắt buộc |
+| `data_quality` | VARCHAR(10) | [Ngày 9] `SOURCED` \| `ESTIMATED` \| `DEMO` |
+| `source` | VARCHAR(200) | Nguồn dữ liệu dinh dưỡng, bắt buộc (kèm mã bản ghi nguồn) |
+| `source_url`, `image_url` | VARCHAR(500) | [Ngày 9] NULL; ảnh là link tới nguồn |
+| `review_note` | VARCHAR(300) | [Ngày 9] Lý do ẩn chờ rà |
 | `is_active` | BOOLEAN | Mặc định `true`; ẩn thay vì xóa |
+| `revision` | INTEGER | [Ngày 9] Tăng khi số liệu đổi |
 | `created_at`, `updated_at` | TIMESTAMPTZ | Bắt buộc |
+
+Thiết kế ngày 9: `20-food-data-policy.md`.
 
 ### `meal_plans`
 

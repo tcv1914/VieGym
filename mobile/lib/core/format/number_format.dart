@@ -19,3 +19,11 @@ double? parseViDecimal(String text, {int maxDecimals = 1}) {
   if (!pattern.hasMatch(normalized)) return null;
   return double.tryParse(normalized);
 }
+
+/// Bỏ số 0 thừa ở phần lẻ: 314 → "314", 355.3 → "355,3", 12.25 → "12,25".
+String formatViCompact(double value, {int maxDecimals = 2}) {
+  var text = formatVi(value, decimals: maxDecimals);
+  if (!text.contains(',')) return text;
+  text = text.replaceFirst(RegExp(r'0+$'), '');
+  return text.endsWith(',') ? text.substring(0, text.length - 1) : text;
+}

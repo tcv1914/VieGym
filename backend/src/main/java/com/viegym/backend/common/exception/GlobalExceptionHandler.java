@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
+import org.apache.tomcat.util.http.InvalidParameterException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -66,6 +67,13 @@ public class GlobalExceptionHandler {
         var body = new ApiError("VALIDATION_ERROR", "Dữ liệu không hợp lệ",
             Map.of(ex.getName(), "Giá trị không hợp lệ"), Instant.now(), request.getRequestURI());
         return ResponseEntity.badRequest().body(body);
+    }
+
+    /** Query string không giải mã được UTF-8 (vd. %-encode theo bảng mã khác): lỗi của client. */
+    @ExceptionHandler(InvalidParameterException.class)
+    ResponseEntity<ApiError> handleBadEncoding(HttpServletRequest request) {
+        return ResponseEntity.badRequest().body(ApiError.of("VALIDATION_ERROR",
+            "Tham số không đúng mã hóa UTF-8", request.getRequestURI()));
     }
 
     @ExceptionHandler(NoResourceFoundException.class)
