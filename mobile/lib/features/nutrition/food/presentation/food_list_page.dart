@@ -6,13 +6,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/presentation/logout_button.dart';
 import '../../../workout/workout_widgets.dart';
 import '../application/food_list_controller.dart';
+import '../data/food_models.dart';
 import 'food_detail_page.dart';
 import 'food_widgets.dart';
 
 /// Tab "Món ăn": tìm không dấu, lọc danh mục/vùng, tải thêm khi cuộn.
-/// Ngày 10 sẽ mở màn này để chọn món (trả foodId); hôm nay chỉ tra cứu.
+/// Có [onPick] (thực đơn ngày 10): chạm món → trả món đã chọn thay vì mở chi tiết.
 class FoodListPage extends ConsumerStatefulWidget {
-  const FoodListPage({super.key});
+  const FoodListPage({super.key, this.onPick, this.title = 'Món ăn'});
+
+  final ValueChanged<FoodSummary>? onPick;
+  final String title;
 
   static const searchDebounce = Duration(milliseconds: 400);
 
@@ -86,7 +90,7 @@ class _FoodListPageState extends ConsumerState<FoodListPage> {
     final q = state.query;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Món ăn'),
+        title: Text(widget.title),
         actions: [
           IconButton(
             key: const Key('food-filter'),
@@ -98,7 +102,7 @@ class _FoodListPageState extends ConsumerState<FoodListPage> {
               child: const Icon(Icons.filter_list),
             ),
           ),
-          const LogoutButton(),
+          if (widget.onPick == null) const LogoutButton(),
         ],
       ),
       body: Column(
@@ -216,11 +220,25 @@ class _FoodListPageState extends ConsumerState<FoodListPage> {
               '${[f.region?.name, f.code].whereType<String>().join(' · ')}',
             ),
             isThreeLine: true,
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => FoodDetailPage(id: f.id, title: f.name),
-              ),
-            ),
+            trailing: widget.onPick == null
+                ? null
+                : IconButton(
+                    key: Key('food-info-${f.id}'),
+                    tooltip: 'Xem chi tiết',
+                    icon: const Icon(Icons.info_outline),
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => FoodDetailPage(id: f.id, title: f.name),
+                      ),
+                    ),
+                  ),
+            onTap: widget.onPick != null
+                ? () => widget.onPick!(f)
+                : () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => FoodDetailPage(id: f.id, title: f.name),
+                    ),
+                  ),
           );
         },
       ),

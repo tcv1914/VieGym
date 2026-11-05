@@ -350,7 +350,7 @@ Thiết kế ngày 9: `20-food-data-policy.md`.
 | `plan_date` | DATE | Bắt buộc |
 | `created_at`, `updated_at` | TIMESTAMPTZ | Bắt buộc |
 
-Ràng buộc: **UNIQUE (`user_id`, `plan_date`)** — một thực đơn/user/ngày. Tạo bằng `INSERT ... ON CONFLICT DO NOTHING` để hai request đồng thời không lỗi.
+Ràng buộc: **UNIQUE (`user_id`, `plan_date`)** — một thực đơn/user/ngày. [Ngày 10] Service khóa hàng `users` trước khi tìm/tạo nên hai request đồng thời chạy tuần tự; UNIQUE là lớp bảo vệ cuối (docs/23 §4).
 
 ### `meal_entries`
 
@@ -359,18 +359,21 @@ Ràng buộc: **UNIQUE (`user_id`, `plan_date`)** — một thực đơn/user/ng
 | `id` | UUID | PK |
 | `meal_plan_id` | UUID | FK → `meal_plans`, `ON DELETE CASCADE` |
 | `food_id` | UUID | FK → `foods`, RESTRICT |
+| `food_revision` | INTEGER | [Ngày 10] `foods.revision` lúc thêm |
 | `meal_type` | VARCHAR(10) | `BREAKFAST` \| `LUNCH` \| `DINNER` \| `SNACK` |
 | `servings` | NUMERIC(5,2) | > 0 và ≤ 20 |
 | `food_name_snapshot` | VARCHAR(150) | Tên món lúc thêm |
-| `serving_size_snapshot` | NUMERIC(7,2) | Khẩu phần chuẩn lúc thêm |
-| `serving_unit_snapshot` | VARCHAR(20) | Đơn vị lúc thêm |
+| `serving_size_snapshot` | NUMERIC(7,2) | Khẩu phần chuẩn lúc thêm; [Ngày 10] NULL khi nguồn không ghi khối lượng |
+| `serving_unit_snapshot` | VARCHAR(20) | Đơn vị lúc thêm; NULL cùng `serving_size_snapshot` |
+| `serving_description_snapshot` | VARCHAR(100) | [Ngày 10] Mô tả khẩu phần lúc thêm, bắt buộc |
 | `kcal_per_serving_snapshot` | NUMERIC(7,2) | Kcal một khẩu phần lúc thêm |
 | `protein_per_serving_snapshot` | NUMERIC(6,2) | |
 | `carbs_per_serving_snapshot` | NUMERIC(6,2) | |
 | `fat_per_serving_snapshot` | NUMERIC(6,2) | |
+| `data_quality_snapshot` | VARCHAR(10) | [Ngày 10] `SOURCED` \| `ESTIMATED` \| `DEMO` lúc thêm |
 | `created_at`, `updated_at` | TIMESTAMPTZ | Bắt buộc |
 
-Index: (`meal_plan_id`).
+Index: (`meal_plan_id`, `created_at`, `id`), (`food_id`). Thiết kế ngày 10: `23-meal-planner-design.md`.
 
 **Vì sao snapshot?** Admin sửa dinh dưỡng món thì thực đơn đã ghi vẫn giữ số liệu cũ. Sửa khẩu phần một mục chỉ đổi `servings`, tính lại bằng snapshot, không đọc lại `foods`. Tương tự, `workout_*_logs` lưu reps/mức tạ thực tế và tên bài, độc lập với giáo án.
 
@@ -446,7 +449,7 @@ Ràng buộc: **UNIQUE (`user_id`, `client_request_id`)**. Index (`user_id`, `cr
 4. UPDATE `workout_schedules.status = COMPLETED`.
 
 **Thêm món** (`POST /meal-plans/entries`), trong một giao dịch:
-1. Đọc `foods` theo `foodId`, kiểm tra `is_active`.
-2. Upsert `meal_plans` (`user_id`, `plan_date`).
+1. Khóa hàng `users` (`SELECT ... FOR UPDATE`); đọc `foods` theo `foodId`, kiểm tra `is_active`.
+2. Tìm hoặc tạo `meal_plans` (`user_id`, `plan_date`).
 3. INSERT `meal_entries` với `servings` và các cột snapshot copy từ `foods`.
 4. Tính tổng bằng `SUM(servings × *_per_serving_snapshot)` trên `meal_entries` của thực đơn và trả về.

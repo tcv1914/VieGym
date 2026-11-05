@@ -40,7 +40,7 @@
 | `403` | Thiếu quyền chức năng / tài khoản khóa | `FORBIDDEN`, `ACCOUNT_LOCKED` |
 | `404` | Không tìm thấy hoặc không thuộc user | `NOT_FOUND`, `HEALTH_PROFILE_REQUIRED` |
 | `409` | Xung đột dữ liệu/trạng thái | `EMAIL_ALREADY_EXISTS`, `WORKOUT_ALREADY_LOGGED`, `INVALID_STATE`, `AI_REQUEST_IN_PROGRESS` |
-| `422` | Tham chiếu hợp lệ về cú pháp nhưng không dùng được | `FOOD_INACTIVE`, `EXERCISE_INACTIVE` |
+| `422` | Tham chiếu hợp lệ về cú pháp nhưng không dùng được | `FOOD_INACTIVE`, `EXERCISE_INACTIVE`, `MEAL_PLAN_LIMIT` (vượt giới hạn số lượng) |
 | `429` | Vượt giới hạn tần suất | `RATE_LIMITED` |
 | `500` | Lỗi hệ thống | `INTERNAL_ERROR` |
 | `502`/`504` | AI service lỗi/timeout | `AI_UPSTREAM_ERROR`, `AI_TIMEOUT` |
@@ -500,39 +500,56 @@ Mọi số dinh dưỡng là của **một khẩu phần** `servingDescription`;
 
 ### `GET /meal-plans?date=YYYY-MM-DD` — User
 
-Mặc định hôm nay theo múi giờ user. Chưa có thực đơn vẫn trả **200** với bữa rỗng (UC07‑A1).
+Mặc định hôm nay theo múi giờ user. Chưa có thực đơn vẫn trả **200** với bữa rỗng, tổng 0 (UC07‑A1); GET không tạo dữ liệu. Thiết kế ngày 10: `23-meal-planner-design.md`.
 
 **200**
 
 ```json
 {
   "date": "2026-10-20",
+  "entryCount": 1,
   "meals": {
     "BREAKFAST": [
       {
         "id": "uuid",
         "foodId": "uuid",
         "foodName": "Phở bò",
+        "mealType": "BREAKFAST",
+        "servingDescription": "1 bát",
         "servingSize": 500,
         "servingUnit": "g",
         "servings": 1.5,
+        "kcalPerServing": 430.0,
+        "proteinPerServingG": 25.0,
+        "carbsPerServingG": 55.0,
+        "fatPerServingG": 12.0,
         "kcal": 645.0,
         "proteinG": 37.5,
         "carbsG": 82.5,
-        "fatG": 18.0
+        "fatG": 18.0,
+        "dataQuality": "SOURCED",
+        "createdAt": "2026-10-20T00:30:00Z"
       }
     ],
     "LUNCH": [],
     "DINNER": [],
     "SNACK": []
   },
+  "mealTotals": {
+    "BREAKFAST": { "kcal": 645.0, "proteinG": 37.5, "carbsG": 82.5, "fatG": 18.0 },
+    "LUNCH": { "kcal": 0.0, "proteinG": 0.0, "carbsG": 0.0, "fatG": 0.0 },
+    "DINNER": { "kcal": 0.0, "proteinG": 0.0, "carbsG": 0.0, "fatG": 0.0 },
+    "SNACK": { "kcal": 0.0, "proteinG": 0.0, "carbsG": 0.0, "fatG": 0.0 }
+  },
   "totals": { "kcal": 645.0, "proteinG": 37.5, "carbsG": 82.5, "fatG": 18.0 },
   "targets": { "kcal": 2791.6, "proteinG": 117.0, "carbsG": 406.4, "fatG": 77.5 },
-  "remaining": { "kcal": 2146.6, "proteinG": 79.5, "carbsG": 323.9, "fatG": 59.5 }
+  "remaining": { "kcal": 2146.6, "proteinG": 79.5, "carbsG": 323.9, "fatG": 59.5 },
+  "targetsCalculatedAt": "2026-10-19T08:00:00Z"
 }
 ```
 
-`targets`/`remaining` là `null` khi chưa có hồ sơ (UC07‑A8). `remaining` âm = vượt mục tiêu (UC07‑A7).
+`*PerServing*` là snapshot một khẩu phần lúc thêm; `kcal`… của mục = `servings × snapshot`. Tổng cộng ở độ chính xác lưu trữ, làm tròn HALF_UP 2 chữ số khi trả về (NUT-BR07). `servingSize`/`servingUnit` `null` khi nguồn không ghi khối lượng (docs/20 §2).
+`targets`/`remaining`/`targetsCalculatedAt` là `null` khi chưa có hồ sơ (UC07‑A8). `targets` là mục tiêu **hiện tại**, kể cả khi xem ngày cũ (NUT-BR09). `remaining` âm = vượt mục tiêu (UC07‑A7).
 
 ### `POST /meal-plans/entries` — User
 
@@ -540,9 +557,9 @@ Mặc định hôm nay theo múi giờ user. Chưa có thực đơn vẫn trả 
 { "date": "2026-10-20", "mealType": "BREAKFAST", "foodId": "uuid", "servings": 1.5 }
 ```
 
-**201**: toàn bộ thực đơn của ngày (cấu trúc `GET /meal-plans`), để app cập nhật tổng ngay.
-Validation: `mealType` thuộc 4 giá trị; `servings` BR-N02; `date` BR-N07. Các field `kcal`/macro trong body bị bỏ qua (BR-N04).
-Lỗi: `400`, `404` (món không tồn tại), `422 FOOD_INACTIVE`.
+**201**: toàn bộ thực đơn của ngày (cấu trúc `GET /meal-plans`), để app cập nhật tổng ngay. Mỗi lần gọi tạo một mục mới (NUT-BR08), không có khóa chống gửi lặp.
+Validation: `mealType` thuộc 4 giá trị; `servings` BR-N02; `date` BR-N07 (≥ 2000-01-01, ≤ hôm nay + 7 theo múi giờ user). Các field `kcal`/macro trong body bị bỏ qua (BR-N04).
+Lỗi: `400`, `404` (món không tồn tại), `422 FOOD_INACTIVE`, `422 MEAL_PLAN_LIMIT` (quá 100 mục/ngày).
 
 ### `PUT /meal-plans/entries/{id}` — User
 
@@ -550,11 +567,11 @@ Lỗi: `400`, `404` (món không tồn tại), `422 FOOD_INACTIVE`.
 { "servings": 2, "mealType": "LUNCH" }
 ```
 
-Cả hai field tùy chọn, ít nhất một. **200**: toàn bộ thực đơn ngày. Lỗi: `400`, `404`.
+Cả hai field tùy chọn, ít nhất một. Tính lại từ snapshot, không đọc lại món; món đã ẩn vẫn sửa được. **200**: toàn bộ thực đơn ngày. Lỗi: `400`, `404` (không tồn tại hoặc của user khác).
 
 ### `DELETE /meal-plans/entries/{id}` — User
 
-**200**: toàn bộ thực đơn ngày sau khi xóa (không dùng 204 vì app cần tổng mới). Lỗi: `404`.
+**200**: toàn bộ thực đơn ngày sau khi xóa (không dùng 204 vì app cần tổng mới). Thực đơn vẫn còn khi hết món (BR-N06). Lỗi: `404`.
 
 ---
 

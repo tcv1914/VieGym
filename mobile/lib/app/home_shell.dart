@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../features/exercise/presentation/exercise_list_page.dart';
 import '../features/health/presentation/health_home_page.dart';
 import '../features/nutrition/food/presentation/food_list_page.dart';
+import '../features/nutrition/meal/presentation/meal_plan_page.dart';
 import '../features/workout/program/presentation/program_list_page.dart';
 import '../features/workout/schedule/presentation/schedule_week_page.dart';
 
@@ -24,6 +25,7 @@ class _HomeShellState extends State<HomeShell> {
     ExerciseListPage(),
     ProgramListPage(),
     ScheduleWeekPage(),
+    MealPlanPage(),
     FoodListPage(),
   ];
 
@@ -59,6 +61,10 @@ class _HomeShellState extends State<HomeShell> {
           NavigationDestination(
             icon: Icon(Icons.calendar_month),
             label: 'Lịch tập',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.dinner_dining),
+            label: 'Thực đơn',
           ),
           NavigationDestination(
             icon: Icon(Icons.restaurant_menu),
