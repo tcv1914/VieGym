@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/format/date_format.dart';
 import '../../../auth/application/auth_controller.dart';
 import '../../../auth/data/auth_models.dart';
+import '../../../dashboard/application/dashboard_providers.dart';
 import '../data/meal_api.dart';
 import '../data/meal_models.dart';
 
@@ -97,7 +98,10 @@ class MealPlanController extends Notifier<MealPlanState> {
 
   /// Kết quả ghi của ngày khác (người dùng đã đổi ngày khi đang gửi) không ghi đè ngày đang xem.
   void _apply(MealPlan plan) {
-    if (!ref.mounted || plan.date != state.date) return;
+    if (!ref.mounted) return;
+    // Ghi thành công thì Tổng quan (mọi ngày đã tải) phải tính lại, kể cả khi đã đổi ngày xem.
+    ref.invalidate(dashboardProvider);
+    if (plan.date != state.date) return;
     ++_generation;
     state = MealPlanState(date: plan.date, plan: plan, loading: false);
   }

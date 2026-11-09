@@ -1,51 +1,67 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../features/dashboard/application/dashboard_providers.dart';
+import '../features/dashboard/presentation/dashboard_page.dart';
 import '../features/exercise/presentation/exercise_list_page.dart';
 import '../features/health/presentation/health_home_page.dart';
 import '../features/nutrition/food/presentation/food_list_page.dart';
 import '../features/nutrition/meal/presentation/meal_plan_page.dart';
 import '../features/workout/program/presentation/program_list_page.dart';
 import '../features/workout/schedule/presentation/schedule_week_page.dart';
+import 'home_tab.dart';
 
 /// Các tab sau đăng nhập. IndexedStack giữ trạng thái từng tab (từ khóa, bộ lọc, vị trí cuộn)
 /// khi chuyển qua lại. Tab chỉ được dựng ở lần mở đầu tiên, tránh gọi API khi chưa xem.
-class HomeShell extends StatefulWidget {
+class HomeShell extends ConsumerStatefulWidget {
   const HomeShell({super.key});
 
   @override
-  State<HomeShell> createState() => _HomeShellState();
+  ConsumerState<HomeShell> createState() => _HomeShellState();
 }
 
-class _HomeShellState extends State<HomeShell> {
-  int _index = 0;
-  final _opened = {0};
+class _HomeShellState extends ConsumerState<HomeShell> {
+  final _opened = {HomeTab.dashboard};
 
-  static const _tabs = <Widget>[
-    HealthHomePage(),
-    ExerciseListPage(),
-    ProgramListPage(),
-    ScheduleWeekPage(),
-    MealPlanPage(),
-    FoodListPage(),
-  ];
+  static const _pages = <HomeTab, Widget>{
+    HomeTab.dashboard: DashboardPage(),
+    HomeTab.health: HealthHomePage(),
+    HomeTab.exercises: ExerciseListPage(),
+    HomeTab.programs: ProgramListPage(),
+    HomeTab.schedule: ScheduleWeekPage(),
+    HomeTab.mealPlan: MealPlanPage(),
+    HomeTab.foods: FoodListPage(),
+  };
 
   @override
   Widget build(BuildContext context) {
+    final current = ref.watch(homeTabProvider);
+    _opened.add(current);
     return Scaffold(
       body: IndexedStack(
-        index: _index,
+        index: current.index,
         children: [
-          for (var i = 0; i < _tabs.length; i++)
-            _opened.contains(i) ? _tabs[i] : const SizedBox.shrink(),
+          for (final tab in HomeTab.values)
+            _opened.contains(tab) ? _pages[tab]! : const SizedBox.shrink(),
         ],
       ),
       bottomNavigationBar: NavigationBar(
-        selectedIndex: _index,
-        onDestinationSelected: (i) => setState(() {
-          _index = i;
-          _opened.add(i);
-        }),
+        selectedIndex: current.index,
+        labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
+        onDestinationSelected: (i) {
+          final tab = HomeTab.values[i];
+          // Quay lại Tổng quan luôn tải lại: lưới an toàn nếu một màn ghi nào đó quên báo.
+          if (tab == HomeTab.dashboard && current != HomeTab.dashboard) {
+            ref.invalidate(dashboardProvider);
+          }
+          ref.read(homeTabProvider.notifier).select(tab);
+        },
         destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.home_outlined),
+            selectedIcon: Icon(Icons.home),
+            label: 'Tổng quan',
+          ),
           NavigationDestination(
             icon: Icon(Icons.monitor_heart_outlined),
             label: 'Sức khỏe',

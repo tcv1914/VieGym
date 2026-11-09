@@ -584,19 +584,30 @@ Cả hai field tùy chọn, ít nhất một. Tính lại từ snapshot, không 
 ```json
 {
   "date": "2026-10-20",
-  "health": { "hasProfile": true, "weightKg": 65.0, "bmi": 22.49, "goal": "GAIN_MUSCLE", "latestWeightLog": { "logDate": "2026-10-20", "weightKg": 64.6 } },
+  "timezone": "Asia/Ho_Chi_Minh",
+  "health": { "hasProfile": true, "weightKg": 65.0, "heightCm": 170.0, "bmi": 22.49, "goal": "GAIN_MUSCLE", "latestWeightLog": null },
   "nutrition": {
+    "entryCount": 3,
     "totals": { "kcal": 645.0, "proteinG": 37.5, "carbsG": 82.5, "fatG": 18.0 },
-    "targets": { "kcal": 2791.6, "proteinG": 117.0, "carbsG": 406.4, "fatG": 77.5 }
+    "targets": { "kcal": 2791.6, "proteinG": 117.0, "carbsG": 406.4, "fatG": 77.5 },
+    "remaining": { "kcal": 2146.6, "proteinG": 79.5, "carbsG": 323.9, "fatG": 59.5 },
+    "targetsCalculatedAt": "2026-10-19T03:00:00Z"
   },
   "training": {
-    "today": [ { "scheduleId": "uuid", "name": "Buổi A", "status": "COMPLETED", "workoutLogId": "uuid" } ],
-    "week": { "scheduled": 3, "completed": 1, "cancelled": 0 }
-  }
+    "today": [ { "scheduleId": "uuid", "scheduledDate": "2026-10-20", "startTime": "18:00", "name": "Buổi A", "programName": "Full Body", "status": "COMPLETED", "workoutLogId": "uuid" } ],
+    "week": { "from": "2026-10-19", "to": "2026-10-25", "scheduled": 3, "completed": 1, "cancelled": 0 },
+    "next": null
+  },
+  "generatedAt": "2026-10-20T05:00:00.000Z"
 }
 ```
 
-Tuần = thứ Hai–Chủ nhật chứa `date`. Không có dữ liệu → giá trị `null`/mảng rỗng, không lỗi.
+Tuần = thứ Hai–Chủ nhật chứa `date`. Không có dữ liệu → giá trị `null`/mảng rỗng, không lỗi. [Ngày 11, docs/25]:
+- `date` mặc định hôm nay theo `users.timezone`; ngoài 2000–2099 hoặc sai định dạng → 400. Không nhận `userId`.
+- `nutrition` = kết quả `GET /meal-plans?date=` (mục tiêu **hiện tại**, NUT-BR09); chưa hồ sơ → `targets`/`remaining` = `null`; `remaining` âm = vượt.
+- `week.scheduled` = số lịch **không hủy** (mẫu số tiến độ); `cancelled` chỉ để hiển thị.
+- `today` gồm cả lịch đã hủy. `next` = lịch SCHEDULED sớm nhất trong 30 ngày tính từ **hôm nay thực**, không theo `date`.
+- `health.hasProfile=false` → các trường khác `null`. `latestWeightLog` `null` tới khi có nhật ký cân nặng (ngày 13).
 
 ---
 

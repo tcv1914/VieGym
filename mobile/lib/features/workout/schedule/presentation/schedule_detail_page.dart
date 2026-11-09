@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../dashboard/application/dashboard_providers.dart';
+
 import '../../../../core/format/date_format.dart';
 import '../../program/data/program_models.dart';
 import '../../program/presentation/program_detail_page.dart';
@@ -34,6 +36,7 @@ class _ScheduleDetailPageState extends ConsumerState<ScheduleDetailPage> {
     if (saved != null) {
       ref.invalidate(scheduleDetailProvider(widget.id));
       ref.invalidate(weekSchedulesProvider);
+      ref.invalidate(dashboardProvider);
     }
   }
 
@@ -83,6 +86,7 @@ class _ScheduleDetailPageState extends ConsumerState<ScheduleDetailPage> {
         status: ScheduleStatus.cancelled,
       );
       ref.invalidate(weekSchedulesProvider);
+      ref.invalidate(dashboardProvider);
       ref.invalidate(scheduleDetailProvider(widget.id));
       if (mounted) showSnack(context, 'Đã hủy lịch');
     } catch (e) {

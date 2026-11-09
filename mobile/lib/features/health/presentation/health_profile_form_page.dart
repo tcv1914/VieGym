@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/format/number_format.dart';
 import '../../../core/network/api_client.dart';
 import '../../auth/presentation/logout_button.dart';
+import '../../dashboard/application/dashboard_providers.dart';
 import '../application/health_profile_controller.dart';
 import '../data/health_api.dart';
 import '../data/health_models.dart';
@@ -144,6 +145,7 @@ class _HealthProfileFormPageState extends ConsumerState<HealthProfileFormPage> {
       await ref.read(healthApiProvider).save(input);
       // Đọc lại từ máy chủ thay vì tự ghép kết quả: màn tổng quan luôn là dữ liệu đã lưu.
       ref.invalidate(healthProfileProvider);
+      ref.invalidate(dashboardProvider);
       if (_editing && mounted) Navigator.of(context).pop(true);
     } on ApiException catch (e) {
       _fail(e.fieldErrors.isEmpty ? e.message : null, e.fieldErrors);

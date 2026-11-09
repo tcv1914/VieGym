@@ -141,7 +141,7 @@ public class WorkoutScheduleService {
     }
 
     /** Thứ Hai của tuần chứa {@code date}. */
-    static LocalDate weekStart(LocalDate date) {
+    public static LocalDate weekStart(LocalDate date) {
         return date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
     }
 

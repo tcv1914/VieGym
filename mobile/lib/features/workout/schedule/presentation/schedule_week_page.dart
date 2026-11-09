@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../dashboard/application/dashboard_providers.dart';
+
 import '../../../../core/format/date_format.dart';
 import '../../../auth/presentation/logout_button.dart';
 import '../../log/presentation/log_history_page.dart';
@@ -35,6 +37,7 @@ class _ScheduleWeekPageState extends ConsumerState<ScheduleWeekPage> {
     );
     if (created == null || !mounted) return;
     ref.invalidate(weekSchedulesProvider);
+    ref.invalidate(dashboardProvider);
     setState(() => _monday = weekStart(created.item.date));
   }
 
@@ -44,6 +47,7 @@ class _ScheduleWeekPageState extends ConsumerState<ScheduleWeekPage> {
     );
     // Có thể đã dời sang tuần khác hoặc hủy: tải lại tuần đang xem.
     ref.invalidate(weekSchedulesProvider);
+    ref.invalidate(dashboardProvider);
   }
 
   @override

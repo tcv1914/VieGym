@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../dashboard/application/dashboard_providers.dart';
+
 import '../../../exercise/presentation/exercise_media.dart';
 import '../../schedule/application/schedule_providers.dart';
 import '../../workout_widgets.dart';
@@ -63,6 +65,7 @@ class _ProgramDetailPageState extends ConsumerState<ProgramDetailPage> {
       ref.invalidate(myProgramsProvider);
       // Lịch của buổi bị gỡ đổi trạng thái archived; tên buổi có thể đổi.
       ref.invalidate(weekSchedulesProvider);
+      ref.invalidate(dashboardProvider);
     }
   }
 

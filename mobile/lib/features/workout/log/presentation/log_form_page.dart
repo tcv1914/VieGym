@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../dashboard/application/dashboard_providers.dart';
+
 import '../../../../core/format/date_format.dart';
 import '../../../../core/network/api_client.dart';
 import '../../schedule/application/schedule_providers.dart';
@@ -156,6 +158,7 @@ class _LogFormPageState extends ConsumerState<LogFormPage> {
 
   void _refreshLists() {
     ref.invalidate(weekSchedulesProvider);
+    ref.invalidate(dashboardProvider);
     ref.invalidate(scheduleDetailProvider(_draft.scheduleId));
     ref.read(logHistoryVersionProvider.notifier).bump();
   }
