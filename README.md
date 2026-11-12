@@ -1,2 +1,2 @@
-# ERP
-hệ thống ERP  doanh nghiệp nhỏ, dùng nội bộ
+#VieGym
+Ứng dụng hỗ trợ luyện tập và dinh dưỡng tích hợp chat bot AI
