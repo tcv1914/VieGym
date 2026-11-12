@@ -178,6 +178,8 @@ Ca 2 — biên trần protein: Nữ, 80 tuổi, 100 cm, 300 kg, `SEDENTARY`, `LO
 | BR-AI09 | Câu hỏi về bệnh lý/chấn thương: system prompt yêu cầu không chẩn đoán, khuyên dừng bài gây đau và gặp chuyên gia y tế (AI-BR05). |
 | BR-AI10 | Vượt giới hạn tần suất → `429 RATE_LIMITED`, không gọi AI, không lưu câu hỏi. |
 
+[Ngày 12, docs/27] Bổ sung khi cài đặt: mỗi hội thoại chỉ một câu chờ AI (câu khác → `409 AI_REQUEST_IN_PROGRESS`); 5 lần/phút tính cả lần thử lại, 50 câu/ngày chỉ tính câu mới theo múi giờ user; BR-AI07 kiểm tra lười khi có request/đọc lịch sử, không có job nền; cùng `clientRequestId` khác nội dung → `409 CLIENT_REQUEST_ID_REUSED`; `AI_ENABLED=false` → `503 AI_DISABLED`.
+
 ## 8. Bảo toàn dữ liệu lịch sử
 
 - Thực đơn: snapshot dinh dưỡng trong `meal_entries` (BR-N05).

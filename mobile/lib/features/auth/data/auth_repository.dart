@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/config/app_config.dart';
 import '../../../core/network/api_client.dart';
 import 'auth_api.dart';
 import 'auth_models.dart';
@@ -48,12 +49,13 @@ class AuthRepository {
     String method,
     String path, {
     Object? body,
+    Duration timeout = apiTimeout,
   }) async {
     if (_accessToken == null) await _refreshShared();
     final usedToken = _accessToken;
     try {
       return await _api.request(method, path,
-          body: body, accessToken: usedToken);
+          body: body, accessToken: usedToken, timeout: timeout);
     } on ApiException catch (e) {
       if (e.statusCode != 401) rethrow;
     }
@@ -61,7 +63,7 @@ class AuthRepository {
     if (_accessToken == usedToken) await _refreshShared();
     try {
       return await _api.request(method, path,
-          body: body, accessToken: _accessToken);
+          body: body, accessToken: _accessToken, timeout: timeout);
     } on ApiException catch (e) {
       if (e.statusCode == 401) {
         await _expire(const SessionExpiredException());

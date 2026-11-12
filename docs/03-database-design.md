@@ -425,6 +425,8 @@ Lưu trạng thái xử lý một lần gửi câu hỏi (UC10 — chốt vị t
 
 Ràng buộc: **UNIQUE (`user_id`, `client_request_id`)**. Index (`user_id`, `created_at`) để đếm giới hạn tần suất.
 
+[Ngày 12, V12, docs/27] Thêm: UNIQUE `user_message_id` (một request/câu hỏi); CHECK `status`, `attempt_count ≥ 1`; `ai_messages` CHECK `role` và độ dài nội dung 1–2.000 (USER) / 1–20.000 (ASSISTANT); index (`user_id`, `updated_at`) đếm lần gọi AI/phút (gồm thử lại), (`conversation_id`, `status`) tìm câu đang chờ; index sắp xếp có thêm `id` (`ai_conversations (user_id, last_message_at DESC, id)`, `ai_messages (conversation_id, created_at, id)`). Mọi FK `ON DELETE CASCADE` theo user, riêng `assistant_message_id` `SET NULL`. Không lưu system prompt hay context.
+
 ## 8. Tổng hợp ràng buộc chống trùng
 
 | Ràng buộc | Cài đặt |

@@ -34,3 +34,15 @@ viegym:
     # Khóa nằm ngoài Git (infra/secrets/, đã ignore). Tạo khóa: docs/09-auth-design.md §6.
     private-key-location: ${JWT_PRIVATE_KEY_LOCATION:file:../infra/secrets/jwt-private.pem}
     public-key-location: ${JWT_PUBLIC_KEY_LOCATION:file:../infra/secrets/jwt-public.pem}
+  ai:
+    # Tắt AI Coach mà không cần sửa code: AI_ENABLED=false → 503 AI_DISABLED.
+    enabled: ${AI_ENABLED:true}
+    service-url: ${AI_SERVICE_URL:http://127.0.0.1:8000}
+    # Khóa nội bộ backend ↔ ai-service, khác khóa JWT; chỉ đặt qua biến môi trường.
+    internal-key: ${AI_INTERNAL_KEY:}
+    connect-timeout: 3s
+    # BR-AI04: chờ AI tối đa 30 giây (ai-service tự cắt ở 25 giây).
+    timeout: 30s
+    per-minute: 5
+    per-day: 50
+    history-size: 10

@@ -68,6 +68,7 @@ class ApiClient {
     String path, {
     Object? body,
     String? accessToken,
+    Duration timeout = apiTimeout,
   }) async {
     final req = http.Request(method, Uri.parse('$apiBaseUrl$path'))
       ..headers['Accept'] = 'application/json';
@@ -84,7 +85,7 @@ class ApiClient {
       response = await _client
           .send(req)
           .then(http.Response.fromStream)
-          .timeout(apiTimeout);
+          .timeout(timeout);
     } on TimeoutException {
       throw const NetworkException();
     } on SocketException {

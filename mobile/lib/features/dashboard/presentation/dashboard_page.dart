@@ -12,6 +12,7 @@ import '../../workout/log/presentation/log_detail_page.dart';
 import '../../workout/schedule/data/schedule_models.dart';
 import '../../workout/schedule/presentation/schedule_detail_page.dart';
 import '../../workout/schedule/presentation/schedule_form_page.dart';
+import '../../ai/presentation/conversation_list_page.dart';
 import '../../workout/workout_widgets.dart';
 import '../application/dashboard_providers.dart';
 import '../data/dashboard_models.dart';
@@ -62,6 +63,7 @@ class DashboardPage extends ConsumerWidget {
             _NutritionCard(data: data),
             _TrainingCard(data: data),
             _BodyCard(health: data.health),
+            const _AiCard(),
           ],
         ),
       );
@@ -73,7 +75,15 @@ class DashboardPage extends ConsumerWidget {
           'Xin chào, ${auth.user.fullName}',
           overflow: TextOverflow.ellipsis,
         ),
-        actions: const [LogoutButton()],
+        actions: [
+          IconButton(
+            key: const Key('dashboard-ai'),
+            tooltip: 'AI Coach',
+            onPressed: () => _openAi(context),
+            icon: const Icon(Icons.smart_toy_outlined),
+          ),
+          const LogoutButton(),
+        ],
       ),
       body: Column(
         children: [
@@ -504,4 +514,23 @@ class _BodyCard extends ConsumerWidget {
       ],
     );
   }
+}
+
+void _openAi(BuildContext context) => Navigator.of(context).push(
+  MaterialPageRoute<void>(builder: (_) => const ConversationListPage()),
+);
+
+/// Lối vào AI Coach (ngày 12): chỉ mở màn chat, không hiển thị gợi ý tự sinh trên Tổng quan.
+class _AiCard extends StatelessWidget {
+  const _AiCard();
+
+  @override
+  Widget build(BuildContext context) => _SectionCard(
+    cardKey: const Key('dashboard-ai-card'),
+    title: 'AI Coach',
+    onTap: () => _openAi(context),
+    children: const [
+      Text('Hỏi về bữa ăn, lịch tập dựa trên dữ liệu bạn đã ghi.'),
+    ],
+  );
 }

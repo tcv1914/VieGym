@@ -8,6 +8,7 @@ import java.util.Objects;
 import org.apache.tomcat.util.http.InvalidParameterException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -28,7 +29,12 @@ public class GlobalExceptionHandler {
     ResponseEntity<ApiError> handleApi(ApiException ex, HttpServletRequest request) {
         var body = new ApiError(ex.getCode(), ex.getMessage(), ex.getFieldErrors(), Instant.now(),
             request.getRequestURI(), ex.getDetails());
-        return ResponseEntity.status(ex.getStatus()).body(body);
+        var response = ResponseEntity.status(ex.getStatus());
+        // 429 RATE_LIMITED (docs/05 §12): báo cả qua header chuẩn Retry-After.
+        if (ex.getDetails() != null && ex.getDetails().get("retryAfterSeconds") instanceof Number seconds) {
+            response.header(HttpHeaders.RETRY_AFTER, String.valueOf(seconds.longValue()));
+        }
+        return response.body(body);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

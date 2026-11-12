@@ -44,6 +44,7 @@
 | `429` | Vượt giới hạn tần suất | `RATE_LIMITED` |
 | `500` | Lỗi hệ thống | `INTERNAL_ERROR` |
 | `502`/`504` | AI service lỗi/timeout | `AI_UPSTREAM_ERROR`, `AI_TIMEOUT` |
+| `503` | [Ngày 12] AI Coach bị tắt bằng cấu hình | `AI_DISABLED` |
 
 ### 1.2 Phân trang
 
@@ -649,6 +650,13 @@ Câu hỏi đã lưu; app thử lại bằng **cùng** `clientRequestId` (BR-AI0
 Validation: `clientRequestId` UUID bắt buộc; `message` 1–2.000 ký tự sau trim; `conversationId` nếu có phải thuộc user.
 Lỗi khác: `400`, `404` (hội thoại không thuộc user), `409 AI_REQUEST_IN_PROGRESS`, `429 RATE_LIMITED` (kèm header `Retry-After`).
 
+[Ngày 12, docs/27]:
+- `409 AI_REQUEST_IN_PROGRESS` cả khi hội thoại đang có **một câu khác** chờ AI (mỗi hội thoại một câu chờ).
+- `409 CLIENT_REQUEST_ID_REUSED`: cùng `clientRequestId` nhưng nội dung câu hỏi (sau trim) hoặc `conversationId` khác.
+- `429` có thêm `details.retryAfterSeconds` (cùng giá trị header). Giới hạn phút tính mọi lần gọi AI kể cả thử lại; giới hạn ngày chỉ tính câu hỏi mới, theo múi giờ user.
+- `503 AI_DISABLED` khi `AI_ENABLED=false`: không lưu câu hỏi.
+- `502 AI_EMPTY_RESPONSE` khi model trả rỗng hoặc bị bộ lọc an toàn chặn.
+
 ### `GET /ai/conversations?page=&size=` — User
 
 Sắp xếp `lastMessageAt` giảm dần. **200**: trang `{ "id", "title", "lastMessageAt", "createdAt" }`.
@@ -663,6 +671,8 @@ Sắp xếp `createdAt` tăng dần; mặc định `size=50`. **200**: trang cá
 
 `requestStatus`/`clientRequestId` chỉ có ở tin nhắn USER, để app hiện nút "Thử lại" cho câu hỏi FAILED.
 Lỗi: `404` (không tồn tại hoặc thuộc user khác — AI-BR03).
+
+[Ngày 12] Tin USER có thêm `errorCode` (khi FAILED). Request PROCESSING quá 2 phút được chuyển `FAILED / AI_TIMEOUT` ngay khi đọc (BR-AI07). `size` tối đa: danh sách hội thoại 50 (mặc định 20), tin nhắn 100 (mặc định 50).
 
 ### Hợp đồng nội bộ backend → `ai-service`
 
@@ -679,6 +689,8 @@ Lỗi: `404` (không tồn tại hoặc thuộc user khác — AI-BR03).
 ```
 
 **200**: `{ "content": "...", "model": "...", "promptTokens": 1200, "completionTokens": 350 }`. Lỗi: `502`/`504`.
+
+[Ngày 12] `context` thực tế có thêm `today`, `timezone`, `weekday`; `profile.status` (`READY`/`MISSING`); mỗi món trong `todayMealPlan.entries` có `dataQuality`. Lỗi trả `{ "code": "AI_TIMEOUT" | "AI_UPSTREAM_ERROR" | "AI_EMPTY_RESPONSE" }`; sai/thiếu `X-Internal-Key` → `401`, ai-service chưa cấu hình khóa → `503`; payload sai → `422` trước khi gọi provider. `GET /health` công khai. Chi tiết: docs/27 §3–5.
 
 ---
 
