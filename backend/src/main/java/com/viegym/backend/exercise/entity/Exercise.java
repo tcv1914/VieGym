@@ -1,14 +1,16 @@
 package com.viegym.backend.exercise.entity;
 
+import com.viegym.backend.exercise.SearchText;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.time.Instant;
 import java.util.UUID;
 
-/** Chỉ đọc ở ngày 6; dữ liệu vào bằng migration seed, admin CRUD ở ngày 14. */
+/** Seed bằng migration (ngày 6); admin tạo/sửa/ẩn từ ngày 14 (docs/31). */
 @Entity
 @Table(name = "exercises")
 public class Exercise {
@@ -61,7 +63,50 @@ public class Exercise {
     @Column(name = "media_license", length = 500)
     private String mediaLicense;
 
+    @Column(nullable = false)
+    private int revision;
+
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt;
+
     protected Exercise() {
+    }
+
+    /** Bài admin tạo; {@code code} cố định từ lúc tạo (docs/31 §3). */
+    public Exercise(String code, ExerciseValues values, Instant now) {
+        this.id = UUID.randomUUID();
+        this.code = code;
+        this.revision = 1;
+        this.updatedAt = now;
+        assign(values);
+    }
+
+    /** Lịch/giáo án tham chiếu theo id nên thấy nội dung mới; nhật ký tập giữ tên đã ghi. */
+    public void update(ExerciseValues values, Instant now) {
+        assign(values);
+        this.revision++;
+        this.updatedAt = now;
+    }
+
+    public ExerciseValues values() {
+        return new ExerciseValues(name, muscleGroup, equipment, difficulty, instructions, commonMistakes,
+            thumbnailUrl, mediaType, mediaUrl, contentSource, mediaLicense, active);
+    }
+
+    private void assign(ExerciseValues v) {
+        this.name = v.name();
+        this.nameSearch = SearchText.normalize(v.name());
+        this.muscleGroup = v.muscleGroup();
+        this.equipment = v.equipment();
+        this.difficulty = v.difficulty();
+        this.instructions = v.instructions();
+        this.commonMistakes = v.commonMistakes();
+        this.thumbnailUrl = v.thumbnailUrl();
+        this.mediaType = v.mediaType();
+        this.mediaUrl = v.mediaUrl();
+        this.contentSource = v.contentSource();
+        this.mediaLicense = v.mediaLicense();
+        this.active = v.active();
     }
 
     public UUID getId() {
@@ -114,6 +159,10 @@ public class Exercise {
 
     public String getContentSource() {
         return contentSource;
+    }
+
+    public int getRevision() {
+        return revision;
     }
 
     public String getMediaLicense() {

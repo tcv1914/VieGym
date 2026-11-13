@@ -1,5 +1,6 @@
 package com.viegym.backend.food.entity;
 
+import com.viegym.backend.exercise.SearchText;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -10,11 +11,12 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.UUID;
 
 /**
  * Một món với dinh dưỡng của đúng một khẩu phần chuẩn (BR-N01). Chỉ đọc ở ngày 9; admin sửa ở
- * ngày 14. {@code servingSize} null khi nguồn không công bố khối lượng phần (docs/20 §2).
+ * ngày 14 (docs/31). {@code servingSize} null khi nguồn không công bố khối lượng phần (docs/20 §2).
  */
 @Entity
 @Table(name = "foods")
@@ -76,13 +78,62 @@ public class Food {
     @Column(name = "image_url", length = 500)
     private String imageUrl;
 
+    @Column(name = "review_note", length = 300)
+    private String reviewNote;
+
     @Column(name = "is_active", nullable = false)
     private boolean active;
 
     @Column(nullable = false)
     private int revision;
 
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt;
+
     protected Food() {
+    }
+
+    /** Món admin tạo; {@code code} cố định từ lúc tạo (docs/31 §3). */
+    public Food(String code, FoodValues values, Instant now) {
+        this.id = UUID.randomUUID();
+        this.code = code;
+        this.revision = 1;
+        this.updatedAt = now;
+        assign(values);
+    }
+
+    /** Ghi đè toàn bộ trường sửa được và tăng revision; snapshot thực đơn cũ không bị đụng (NUT-BR05). */
+    public void update(FoodValues values, Instant now) {
+        assign(values);
+        this.revision++;
+        this.updatedAt = now;
+    }
+
+    public FoodValues values() {
+        return new FoodValues(name, nameEn, category, region, servingSize, servingUnit, servingDescription,
+            kcalPerServing, proteinPerServing, carbsPerServing, fatPerServing, dataQuality, source, sourceUrl,
+            imageUrl, reviewNote, active);
+    }
+
+    private void assign(FoodValues v) {
+        this.name = v.name();
+        this.nameEn = v.nameEn();
+        this.nameSearch = SearchText.normalize(v.name());
+        this.category = v.category();
+        this.region = v.region();
+        this.servingSize = v.servingSize();
+        this.servingUnit = v.servingUnit();
+        this.servingDescription = v.servingDescription();
+        this.kcalPerServing = v.kcalPerServing();
+        this.proteinPerServing = v.proteinPerServing();
+        this.carbsPerServing = v.carbsPerServing();
+        this.fatPerServing = v.fatPerServing();
+        this.dataQuality = v.dataQuality();
+        this.source = v.source();
+        this.sourceUrl = v.sourceUrl();
+        this.imageUrl = v.imageUrl();
+        this.reviewNote = v.reviewNote();
+        this.active = v.active();
     }
 
     public UUID getId() {
@@ -151,6 +202,10 @@ public class Food {
 
     public String getImageUrl() {
         return imageUrl;
+    }
+
+    public String getReviewNote() {
+        return reviewNote;
     }
 
     public boolean isActive() {

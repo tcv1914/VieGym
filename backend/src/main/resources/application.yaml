@@ -68,3 +68,9 @@ viegym:
     reset-ip-window: 15m
     # Người gửi hiển thị trong email; SMTP thật thường yêu cầu trùng tài khoản đăng nhập.
     mail-from: ${MAIL_FROM:VieGym <no-reply@viegym.local>}
+  admin:
+    # docs/31 §2: tạo ADMIN lúc khởi động nếu email chưa tồn tại. Chỉ đặt qua biến môi trường
+    # (không commit mật khẩu); để trống thì không làm gì.
+    bootstrap-email: ${ADMIN_EMAIL:}
+    bootstrap-password: ${ADMIN_PASSWORD:}
+    bootstrap-full-name: ${ADMIN_FULL_NAME:Quản trị viên}

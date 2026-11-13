@@ -188,3 +188,15 @@ Ca 2 — biên trần protein: Nữ, 80 tuổi, 100 cm, 300 kg, `SEDENTARY`, `LO
 - Luyện tập: log lưu tên bài, reps, mức tạ thực tế; không tham chiếu `workout_exercises` (BR-W07).
 - Danh mục: ẩn thay vì xóa (BR-G07); FK `RESTRICT` chặn xóa cứng món/bài đang được tham chiếu.
 - Hội thoại AI: không có API xóa trong MVP.
+
+## 9. Quản trị (UC12) [Ngày 14, docs/31]
+
+| Mã | Quy tắc |
+|---|---|
+| BR-AD01 | Mọi `/api/v1/admin/**` yêu cầu `role = ADMIN` đọc từ DB ở mỗi request; chưa đăng nhập `401`, USER `403 FORBIDDEN`. Không có API nâng vai trò hay đăng ký ADMIN; admin tạo từ biến môi trường máy chủ, không tự nâng quyền email USER có sẵn. |
+| BR-AD02 | Admin không đọc hồ sơ sức khỏe, thực đơn, nhật ký tập, cân nặng hay hội thoại AI của user (không có API). |
+| BR-AD03 | Sửa món/bài phải gửi `revision` đang xem; khác hiện tại → `409 VERSION_CONFLICT` + `currentRevision`. Lưu không đổi gì thì không tăng revision. |
+| BR-AD04 | Không xóa món/bài: ẩn bằng `active = false` (BR-G07). Sửa danh mục không cập nhật snapshot thực đơn hay nhật ký đã ghi. |
+| BR-AD05 | Món chỉ được hiển thị khi đủ nhãn khẩu phần, nguồn, mức tin cậy và kcal lệch ≤ 15% so với 4P + 4C + 9F (cùng ngưỡng seed, docs/20 §4; kcal = P = C = F = 0 hợp lệ). URL ảnh/nguồn chỉ `http(s)`; media bài tập là URL `http(s)` hoặc tệp tĩnh có sẵn `exercises/<tệp>`. |
+| BR-AD06 | Chỉ khóa/mở tài khoản USER, không tự khóa mình; khóa phải có lý do. Khóa: đổi trạng thái + thu hồi mọi phiên và refresh token + audit trong một giao dịch (BR-G08). Mở khóa không phục hồi phiên cũ. |
+| BR-AD07 | Mọi thay đổi của admin ghi `admin_audit_logs` trong cùng giao dịch; chỉ lưu tên trường đổi, không lưu mật khẩu, token hay giá trị dữ liệu cá nhân. |

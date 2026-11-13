@@ -73,6 +73,20 @@ public class User {
         this.passwordHash = newPasswordHash;
     }
 
+    /**
+     * Chỉ dùng cho khởi tạo admin từ cấu hình máy chủ (docs/31 §2), không có API nâng vai trò.
+     */
+    public static User bootstrapAdmin(String email, String passwordHash, String fullName, Instant now) {
+        User user = new User(email, passwordHash, fullName, now);
+        user.role = UserRole.ADMIN;
+        return user;
+    }
+
+    /** Gọi trong giao dịch đã khóa dòng user; thu hồi phiên do service làm cùng giao dịch. */
+    public void setLocked(boolean locked) {
+        this.status = locked ? UserStatus.LOCKED : UserStatus.ACTIVE;
+    }
+
     public boolean isLocked() {
         return status == UserStatus.LOCKED;
     }
@@ -103,5 +117,9 @@ public class User {
 
     public String getTimezone() {
         return timezone;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
     }
 }

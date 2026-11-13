@@ -207,6 +207,7 @@ Ràng buộc: **UNIQUE (`user_id`, `log_date`)** — nhập lại cùng ngày th
 | `media_url` | VARCHAR(500) | NULL; URL tuyệt đối hoặc key tương đối dưới `/media/` (backend ghép host) |
 | `is_active` | BOOLEAN | Mặc định `true`; ẩn thay vì xóa |
 | `content_source`, `media_license` | VARCHAR(500) | NULL; nguồn nội dung và quyền dùng media (ngày 6) |
+| `revision` | INTEGER | [Ngày 14, V14] Mặc định 1, ≥ 1; tăng mỗi lần admin sửa — khóa lạc quan (docs/31 §3) |
 | `created_at`, `updated_at` | TIMESTAMPTZ | Bắt buộc |
 
 Index: `(is_active, muscle_group, equipment, difficulty)`. Tìm tên dùng `LIKE '%…%'` trên `name_search`, B-tree không hỗ trợ; vài chục bài thì quét bảng là đủ, cần thì thêm `pg_trgm`. Chi tiết: `13-exercise-library-design.md`.
@@ -336,7 +337,7 @@ Index: (`user_id`, `workout_date` DESC, `created_at` DESC). Ngày 8: thêm UNIQU
 | `source_url`, `image_url` | VARCHAR(500) | [Ngày 9] NULL; ảnh là link tới nguồn |
 | `review_note` | VARCHAR(300) | [Ngày 9] Lý do ẩn chờ rà |
 | `is_active` | BOOLEAN | Mặc định `true`; ẩn thay vì xóa |
-| `revision` | INTEGER | [Ngày 9] Tăng khi số liệu đổi |
+| `revision` | INTEGER | [Ngày 9] Tăng khi số liệu đổi. [Ngày 14] Tăng mỗi lần admin sửa bất kỳ trường nào, dùng làm khóa lạc quan; CHECK ≥ 1 (docs/31 §3) |
 | `created_at`, `updated_at` | TIMESTAMPTZ | Bắt buộc |
 
 Thiết kế ngày 9: `20-food-data-policy.md`.
@@ -426,6 +427,23 @@ Lưu trạng thái xử lý một lần gửi câu hỏi (UC10 — chốt vị t
 Ràng buộc: **UNIQUE (`user_id`, `client_request_id`)**. Index (`user_id`, `created_at`) để đếm giới hạn tần suất.
 
 [Ngày 12, V12, docs/27] Thêm: UNIQUE `user_message_id` (một request/câu hỏi); CHECK `status`, `attempt_count ≥ 1`; `ai_messages` CHECK `role` và độ dài nội dung 1–2.000 (USER) / 1–20.000 (ASSISTANT); index (`user_id`, `updated_at`) đếm lần gọi AI/phút (gồm thử lại), (`conversation_id`, `status`) tìm câu đang chờ; index sắp xếp có thêm `id` (`ai_conversations (user_id, last_message_at DESC, id)`, `ai_messages (conversation_id, created_at, id)`). Mọi FK `ON DELETE CASCADE` theo user, riêng `assistant_message_id` `SET NULL`. Không lưu system prompt hay context.
+
+## 7b. Quản trị
+
+### `admin_audit_logs` [Ngày 14, V14]
+
+| Cột | Kiểu | Ghi chú |
+|---|---|---|
+| `id` | UUID | PK |
+| `actor_id` | UUID | FK → `users` (admin thao tác) |
+| `action` | VARCHAR(30) | `CREATE` \| `UPDATE` \| `ACTIVATE` \| `DEACTIVATE` \| `LOCK` \| `UNLOCK` |
+| `entity_type` | VARCHAR(20) | `FOOD` \| `EXERCISE` \| `USER` |
+| `entity_id` | UUID | Không FK (một cột cho nhiều bảng) |
+| `reason` | VARCHAR(300) | NULL; bắt buộc khi khóa tài khoản |
+| `changed_fields` | VARCHAR(500) | NULL; chỉ **tên** trường, không có giá trị |
+| `created_at` | TIMESTAMPTZ | Bắt buộc |
+
+Chỉ thêm; ghi trong cùng giao dịch với thay đổi. Index (`entity_type`, `entity_id`, `created_at DESC`), (`actor_id`, `created_at DESC`). V14 thêm index `users (created_at DESC, id)` cho danh sách tài khoản của admin. Chi tiết: `31-admin-design.md` §4.
 
 ## 8. Tổng hợp ràng buộc chống trùng
 

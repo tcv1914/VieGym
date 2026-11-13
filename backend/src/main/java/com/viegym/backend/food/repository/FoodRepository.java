@@ -2,6 +2,7 @@ package com.viegym.backend.food.repository;
 
 import com.viegym.backend.food.entity.Food;
 import com.viegym.backend.food.entity.FoodCategory;
+import jakarta.persistence.LockModeType;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -11,6 +12,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 
 public interface FoodRepository extends JpaRepository<Food, UUID>, JpaSpecificationExecutor<Food> {
@@ -29,4 +31,13 @@ public interface FoodRepository extends JpaRepository<Food, UUID>, JpaSpecificat
         order by c.sortOrder
         """)
     List<FoodCategory> categoriesWithActiveFoods();
+
+    /** Admin: cả món ẩn. */
+    @Query("select f from Food f join fetch f.category where f.id = :id")
+    Optional<Food> findWithCategory(UUID id);
+
+    /** Admin sửa: khóa dòng để so revision rồi ghi không bị chen giữa (docs/31 §3). */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select f from Food f join fetch f.category where f.id = :id")
+    Optional<Food> findForUpdate(UUID id);
 }

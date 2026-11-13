@@ -708,6 +708,25 @@ Lỗi: `404` (không tồn tại hoặc thuộc user khác — AI-BR03).
 
 Tất cả yêu cầu role ADMIN; User gọi → `403 FORBIDDEN`. Không có `DELETE` (ẩn thay vì xóa).
 
+[Ngày 14, docs/31] Chi tiết khi cài đặt:
+
+| Endpoint | Ghi chú |
+|---|---|
+| `GET /admin/foods?keyword=&category=&active=&page=&size=` | Cả món ẩn; `keyword` khớp tên bỏ dấu hoặc mã; `size` 1–100 |
+| `GET /admin/foods/{id}` | Đủ trường cho form, gồm `reviewNote`, `active`, `revision` |
+| `GET /admin/food-options` | `categories` (mọi danh mục), `regions`, `dataQualities`, `servingUnits` |
+| `POST /admin/foods` → `201` | Không gửi `revision`; `code` do server sinh (`ADM-…`) |
+| `PUT /admin/foods/{id}` → `200` | Ghi đè toàn bộ trường sửa được + `revision` bắt buộc; `active` để ẩn/hiện |
+| `GET /admin/exercises?keyword=&muscleGroup=&active=&page=&size=` | Cả bài ẩn; `thumbnailPreviewUrl` đã ghép host |
+| `GET /admin/exercises/{id}` | `thumbnailUrl`/`mediaUrl` là giá trị lưu (để sửa), `*PreviewUrl` để hiển thị |
+| `POST /admin/exercises` → `201`, `PUT /admin/exercises/{id}` → `200` | Như món; `code` = `admin-…` |
+| `GET /admin/users?keyword=&status=&page=&size=` | `id, email, fullName, role, status, createdAt`; sắp mới nhất trước |
+| `PUT /admin/users/{id}/status` → `200` | Body `{ "status": "LOCKED" \| "ACTIVE", "reason": "…" }`; `reason` bắt buộc khi khóa |
+
+Body món: `name, nameEn?, categoryCode, region?, servingDescription, servingSize?, servingUnit?, kcalPerServing, proteinPerServing, carbsPerServing, fatPerServing, dataQuality, source, sourceUrl?, imageUrl?, reviewNote?, active, revision?`. Body bài: `name, muscleGroup, equipment, difficulty, instructions, commonMistakes, thumbnailUrl?, mediaType?, mediaUrl?, contentSource?, mediaLicense?, active, revision?`.
+
+Lỗi: `400 VALIDATION_ERROR` (gồm kcal lệch > 15% khi `active = true` → `fieldErrors.kcalPerServing`; media không phải URL `http(s)`/tệp tĩnh có sẵn; thiếu/thừa `revision`), `404 NOT_FOUND`, `409 VERSION_CONFLICT` + `currentRevision`, `409 EXERCISE_NAME_TAKEN`, `422 CANNOT_CHANGE_OWN_STATUS`, `422 ADMIN_ACCOUNT_PROTECTED`. Khóa → access token cũ của user `401`, refresh `401`, đăng nhập `403 ACCOUNT_LOCKED`.
+
 ---
 
 ## 14. Đối chiếu use case ↔ API
