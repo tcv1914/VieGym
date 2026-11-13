@@ -68,6 +68,11 @@ public class User {
         updatedAt = Instant.now();
     }
 
+    /** Hash đã mã hóa bởi PasswordEncoder; gọi trong giao dịch đã khóa dòng user. */
+    public void changePassword(String newPasswordHash) {
+        this.passwordHash = newPasswordHash;
+    }
+
     public boolean isLocked() {
         return status == UserStatus.LOCKED;
     }

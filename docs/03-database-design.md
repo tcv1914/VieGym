@@ -130,10 +130,10 @@ Index: `(session_id)`. Thay thiết kế ngày 2 (`user_id`, `replaced_by_id`): 
 |---|---|---|
 | `id` | UUID | PK |
 | `user_id` | UUID | FK → `users`, bắt buộc |
-| `token_hash` | CHAR(64) | SHA‑256 của mã; **không** UNIQUE vì mã 6 chữ số có thể trùng giữa các user |
+| `token_hash` | CHAR(64) | SHA‑256 của `userId:mã` (ngày 13 — cùng mã ở hai user ra hash khác nhau); **không** UNIQUE vì mã 6 chữ số có thể trùng |
 | `expires_at` | TIMESTAMPTZ | Bắt buộc (15 phút sau khi tạo) |
 | `used_at` | TIMESTAMPTZ | NULL = chưa dùng |
-| `attempt_count` | SMALLINT | Mặc định 0; số lần nhập sai, đạt 5 thì vô hiệu mã (BR-A06) |
+| `attempt_count` | SMALLINT | Mặc định 0; số lần nhập sai, đạt 5 thì vô hiệu mã (BR-A06). CHECK 0–5 |
 | `created_at` | TIMESTAMPTZ | Bắt buộc |
 
 Index: `(user_id, created_at DESC)`. Tra mã theo user (từ email) rồi so sánh hash; tạo mã mới thì vô hiệu các mã chưa dùng trước đó của user.
@@ -185,7 +185,7 @@ Kết quả tính từ `health_profiles`; ghi lại cùng giao dịch khi lưu h
 | `note` | VARCHAR(500) | NULL |
 | `created_at`, `updated_at` | TIMESTAMPTZ | Bắt buộc |
 
-Ràng buộc: **UNIQUE (`user_id`, `log_date`)** — nhập lại cùng ngày thì cập nhật (upsert).
+Ràng buộc: **UNIQUE (`user_id`, `log_date`)** — nhập lại cùng ngày thì cập nhật (upsert); index của UNIQUE dùng luôn cho đọc theo user + khoảng ngày. CHECK `weight_kg` 30,0–300,0. Tạo ở V13 (ngày 13); không nhập lịch sử từ `health_profiles.weight_kg` vì hồ sơ không có ngày đo (docs/29 §1).
 
 ## 5. Nhóm luyện tập
 

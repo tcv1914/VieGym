@@ -51,22 +51,33 @@ class DashboardHealth {
     this.heightCm,
     this.bmi,
     this.goal,
+    this.latestWeightDate,
+    this.latestWeightKg,
   });
 
-  factory DashboardHealth.fromJson(Map<String, dynamic> json) =>
-      DashboardHealth(
-        hasProfile: json['hasProfile'] as bool,
-        weightKg: _numOrNull(json['weightKg']),
-        heightCm: _numOrNull(json['heightCm']),
-        bmi: _numOrNull(json['bmi']),
-        goal: _goal(json['goal']),
-      );
+  factory DashboardHealth.fromJson(Map<String, dynamic> json) {
+    final latest = json['latestWeightLog'] as Map<String, dynamic>?;
+    return DashboardHealth(
+      hasProfile: json['hasProfile'] as bool,
+      weightKg: _numOrNull(json['weightKg']),
+      heightCm: _numOrNull(json['heightCm']),
+      bmi: _numOrNull(json['bmi']),
+      goal: _goal(json['goal']),
+      latestWeightDate:
+          latest == null ? null : parseIsoDate(latest['logDate'] as String),
+      latestWeightKg: latest == null ? null : _numOrNull(latest['weightKg']),
+    );
+  }
 
   final bool hasProfile;
   final double? weightKg;
   final double? heightCm;
   final double? bmi;
   final Goal? goal;
+
+  /// Lần cân có ngày đo mới nhất (ngày 13); có thể khác [weightKg] của hồ sơ (BR-H02).
+  final DateTime? latestWeightDate;
+  final double? latestWeightKg;
 }
 
 /// [targets]/[remaining] null khi chưa có mục tiêu; [remaining] âm = vượt.

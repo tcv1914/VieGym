@@ -31,6 +31,23 @@ class AuthApi {
   Future<void> logout(String refreshToken) => _api.request(
       'POST', '/api/v1/auth/logout',
       body: {'refreshToken': refreshToken});
+
+  /// Luôn 204 dù email có tồn tại hay không (BR-A06).
+  Future<void> forgotPassword(String email) => _api.request(
+      'POST', '/api/v1/auth/forgot-password',
+      body: {'email': email});
+
+  /// Không cấp token: đặt lại xong phải đăng nhập lại.
+  Future<void> resetPassword({
+    required String email,
+    required String code,
+    required String newPassword,
+  }) =>
+      _api.request('POST', '/api/v1/auth/reset-password', body: {
+        'email': email,
+        'code': code,
+        'newPassword': newPassword,
+      });
 }
 
 final authApiProvider =

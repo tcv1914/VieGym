@@ -25,7 +25,8 @@ Ký hiệu: **[Đã chốt]** — quyết định thiết kế MVP; **[Cần xá
 | BR-A04 | Mỗi lần refresh: thu hồi token cũ, cấp token mới (xoay vòng). Dùng lại token đã thu hồi → thu hồi toàn bộ phiên của user đó. |
 | BR-A05 | Đăng nhập sai không nói rõ sai email hay mật khẩu: `401 INVALID_CREDENTIALS`. |
 | BR-A06 | Quên mật khẩu luôn trả `204` dù email có tồn tại hay không. Mã đặt lại 6 chữ số, hạn 15 phút, dùng một lần; tạo mã mới vô hiệu mã cũ. Nhập sai tối đa 5 lần/mã, lần thứ 5 vô hiệu mã (`used_at = now()`); `/auth/reset-password` giới hạn thêm 10 yêu cầu/IP/15 phút [Đã chốt]. Đặt lại thành công thu hồi mọi refresh token. |
-| BR-A07 | Kênh gửi mã đặt lại: email qua SMTP; môi trường dev ghi ra log/Mailpit. [Đã chốt] |
+| BR-A07 | Kênh gửi mã đặt lại: email qua SMTP; môi trường dev ghi ra log/Mailpit. [Đã chốt] [Ngày 13] Dev dùng Mailpit (`infra/compose.yaml`), không ghi mã ra log. Gửi sau khi mã đã commit, ngoài luồng request, thử tối đa 3 lần. |
+| BR-A08 | [Ngày 13] `/auth/forgot-password` vượt giới hạn (3/email/giờ hoặc 10/IP/15 phút) vẫn trả `204` nhưng không tạo mã, không gửi. Đặt lại thành công không tự đăng nhập; mọi phiên (cả access token đang dùng) bị thu hồi. |
 
 ## 3. Chỉ số sức khỏe và mục tiêu dinh dưỡng
 
@@ -162,6 +163,7 @@ Ca 2 — biên trần protein: Nữ, 80 tuổi, 100 cm, 300 kg, `SEDENTARY`, `LO
 |---|---|
 | BR-WL01 | Một bản ghi/user/ngày; `POST /weight-logs` cùng ngày → cập nhật bản ghi hiện có, trả `200` (tạo mới trả `201`). |
 | BR-WL02 | Không ghi cho ngày tương lai. |
+| BR-WL03 | [Ngày 13] Xóa bản ghi qua `DELETE /weight-logs/{id}`; bản ghi của user khác → `404`. Ghi/sửa/xóa không đổi hồ sơ (BR-H02). Gửi lại cùng ngày thay cả `weightKg` và `note`. |
 
 ## 7. AI Coach
 

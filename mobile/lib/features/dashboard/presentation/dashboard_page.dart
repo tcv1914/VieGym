@@ -504,6 +504,12 @@ class _BodyCard extends ConsumerWidget {
             'Cân nặng ${formatViCompact(weight, maxDecimals: 1)} kg (theo hồ sơ)',
             key: const Key('dashboard-weight'),
           ),
+        if (health.latestWeightKg != null)
+          Text(
+            'Lần cân gần nhất ${formatViCompact(health.latestWeightKg!, maxDecimals: 1)} kg '
+            '(${viDate(health.latestWeightDate!)})',
+            key: const Key('dashboard-latest-weight'),
+          ),
         Text(
           [
             if (bmi != null) 'BMI ${formatVi(bmi, decimals: 2)}',

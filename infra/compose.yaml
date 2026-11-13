@@ -10,5 +10,13 @@ services:
     volumes:
       - viegym_pgdata:/var/lib/postgresql/data
 
+  # Hộp thư bắt email khi phát triển (BR-A07): backend gửi SMTP tới 1025, xem thư ở http://127.0.0.1:8025.
+  # Chỉ nghe 127.0.0.1; không chuyển tiếp thư ra Internet.
+  mailpit:
+    image: axllent/mailpit:v1.27
+    ports:
+      - "127.0.0.1:1025:1025"
+      - "127.0.0.1:8025:8025"
+
 volumes:
   viegym_pgdata:

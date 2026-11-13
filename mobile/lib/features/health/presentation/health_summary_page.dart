@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/format/number_format.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../auth/presentation/logout_button.dart';
+import '../../weight/presentation/weight_page.dart';
 import '../application/health_profile_controller.dart';
 import '../data/health_models.dart';
 import 'health_profile_form_page.dart';
@@ -104,6 +105,15 @@ class HealthSummaryPage extends ConsumerWidget {
                   ],
                 ),
               ),
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              key: const Key('health-weight'),
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => const WeightPage()),
+              ),
+              icon: const Icon(Icons.monitor_weight_outlined),
+              label: const Text('Theo dõi cân nặng'),
             ),
             const SizedBox(height: 8),
             FilledButton.tonal(

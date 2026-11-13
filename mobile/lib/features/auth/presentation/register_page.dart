@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_client.dart';
 import '../data/auth_api.dart';
+import 'password_rules.dart';
 
 /// Đăng ký xong quay lại màn đăng nhập (trả về email); backend không cấp token ở đây.
 class RegisterPage extends ConsumerStatefulWidget {
@@ -13,9 +14,6 @@ class RegisterPage extends ConsumerStatefulWidget {
 }
 
 class _RegisterPageState extends ConsumerState<RegisterPage> {
-  static final _letter = RegExp(r'\p{L}', unicode: true);
-  static final _digit = RegExp(r'\p{Nd}', unicode: true);
-
   final _formKey = GlobalKey<FormState>();
   final _email = TextEditingController();
   final _fullName = TextEditingController();
@@ -36,12 +34,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
 
   // Chỉ hỗ trợ trải nghiệm; backend vẫn kiểm tra đầy đủ (BR-A02).
   String? _validatePassword(String? v) {
-    if (v == null || v.isEmpty) return 'Vui lòng nhập mật khẩu';
-    if (v.length < 8 || v.length > 72) return 'Mật khẩu từ 8 đến 72 ký tự';
-    if (!_letter.hasMatch(v) || !_digit.hasMatch(v)) {
-      return 'Mật khẩu cần ít nhất một chữ cái và một chữ số';
-    }
-    return _fieldErrors['password'];
+    return passwordRuleError(v) ?? _fieldErrors['password'];
   }
 
   Future<void> _submit() async {

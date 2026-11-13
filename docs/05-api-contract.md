@@ -125,7 +125,7 @@ Lỗi: `401 INVALID_REFRESH_TOKEN` (sai, hết hạn, đã thu hồi), `403 ACCO
 { "email": "minh@example.com" }
 ```
 
-**204** trong mọi trường hợp (BR-A06). Giới hạn 3 yêu cầu/email/giờ.
+**204** trong mọi trường hợp (BR-A06). Giới hạn 3 yêu cầu/email/giờ; [ngày 13] thêm 10 yêu cầu/IP/15 phút — vượt giới hạn vẫn 204, chỉ không gửi (BR-A08). Email gửi bất đồng bộ sau khi trả 204.
 
 ### `POST /auth/reset-password` — Public
 
@@ -134,7 +134,7 @@ Lỗi: `401 INVALID_REFRESH_TOKEN` (sai, hết hạn, đã thu hồi), `403 ACCO
 ```
 
 **204**. Lỗi: `400 VALIDATION_ERROR`, `400 INVALID_RESET_CODE` (sai/hết hạn/đã dùng/đã bị vô hiệu sau 5 lần sai — BR-A06), `429 RATE_LIMITED` (vượt giới hạn theo IP, kèm header `Retry-After`).
-Không phân biệt "sai mã" với "mã đã bị vô hiệu" để tránh lộ thông tin.
+Không phân biệt "sai mã" với "mã đã bị vô hiệu" để tránh lộ thông tin. [Ngày 13] Email không tồn tại cũng `400 INVALID_RESET_CODE`. Không cấp token; mọi phiên cũ bị thu hồi. `newPassword` theo BR-A02 (lỗi ở `fieldErrors.newPassword`), `code` đúng 6 chữ số (`fieldErrors.code`).
 
 ### `GET /users/me` — User
 
@@ -219,7 +219,11 @@ Lỗi: `400` khi `from > to` hoặc khoảng quá dài.
 ```
 
 **201** (tạo mới) / **200** (cập nhật cùng ngày — BR-WL01): `{ "id", "logDate", "weightKg", "note" }`.
-Validation: `logDate` không ở tương lai; `weightKg` 30–300; `note` ≤ 500.
+Validation: `logDate` không ở tương lai; `weightKg` 30–300, tối đa 1 chữ số lẻ; `note` ≤ 500 (rỗng → `null`). Gửi lại cùng ngày thay cả `weightKg` và `note`. Field lạ (`userId`) bị bỏ qua.
+
+### `DELETE /weight-logs/{id}` — User [Thêm ngày 13]
+
+**204**. Lỗi: `404 NOT_FOUND` (không tồn tại hoặc của user khác), `400 VALIDATION_ERROR` (id sai định dạng). Không đổi hồ sơ (BR-H02).
 
 ---
 
@@ -608,7 +612,7 @@ Tuần = thứ Hai–Chủ nhật chứa `date`. Không có dữ liệu → giá
 - `nutrition` = kết quả `GET /meal-plans?date=` (mục tiêu **hiện tại**, NUT-BR09); chưa hồ sơ → `targets`/`remaining` = `null`; `remaining` âm = vượt.
 - `week.scheduled` = số lịch **không hủy** (mẫu số tiến độ); `cancelled` chỉ để hiển thị.
 - `today` gồm cả lịch đã hủy. `next` = lịch SCHEDULED sớm nhất trong 30 ngày tính từ **hôm nay thực**, không theo `date`.
-- `health.hasProfile=false` → các trường khác `null`. `latestWeightLog` `null` tới khi có nhật ký cân nặng (ngày 13).
+- `health.hasProfile=false` → các trường khác `null`. `latestWeightLog` = `{ "logDate", "weightKg" }` của bản ghi có ngày đo mới nhất, `null` khi chưa ghi; có thể khác `weightKg` (cân nặng hồ sơ, BR-H02).
 
 ---
 

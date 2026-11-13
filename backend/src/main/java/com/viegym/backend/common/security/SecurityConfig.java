@@ -24,6 +24,9 @@ public class SecurityConfig {
         // refresh/logout xác minh refresh token trong body, không cần access token.
         "/api/v1/auth/refresh",
         "/api/v1/auth/logout",
+        // Ngày 13: chưa đăng nhập được nên phải public; tự giới hạn tần suất (BR-A06).
+        "/api/v1/auth/forgot-password",
+        "/api/v1/auth/reset-password",
     };
 
     @Bean

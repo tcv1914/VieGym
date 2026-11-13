@@ -9,12 +9,14 @@ import com.viegym.backend.dashboard.DashboardDtos.Nutrition;
 import com.viegym.backend.dashboard.DashboardDtos.ScheduleRef;
 import com.viegym.backend.dashboard.DashboardDtos.Training;
 import com.viegym.backend.dashboard.DashboardDtos.WeekStats;
+import com.viegym.backend.dashboard.DashboardDtos.WeightLogRef;
 import com.viegym.backend.health.entity.HealthProfile;
 import com.viegym.backend.health.entity.NutritionTarget;
 import com.viegym.backend.health.repository.HealthProfileRepository;
 import com.viegym.backend.health.repository.NutritionTargetRepository;
 import com.viegym.backend.meal.MealPlanService;
 import com.viegym.backend.meal.dto.MealDtos.MealPlanView;
+import com.viegym.backend.weight.WeightLogService;
 import com.viegym.backend.workout.WorkoutScheduleService;
 import com.viegym.backend.workout.dto.ScheduleDtos.ScheduleItem;
 import com.viegym.backend.workout.entity.ScheduleStatus;
@@ -49,16 +51,19 @@ public class DashboardService {
     private final NutritionTargetRepository targetRepository;
     private final MealPlanService mealPlanService;
     private final WorkoutScheduleService scheduleService;
+    private final WeightLogService weightLogService;
     private final Clock clock;
 
     public DashboardService(UserRepository userRepository, HealthProfileRepository profileRepository,
                             NutritionTargetRepository targetRepository, MealPlanService mealPlanService,
-                            WorkoutScheduleService scheduleService, Clock clock) {
+                            WorkoutScheduleService scheduleService, WeightLogService weightLogService,
+                            Clock clock) {
         this.userRepository = userRepository;
         this.profileRepository = profileRepository;
         this.targetRepository = targetRepository;
         this.mealPlanService = mealPlanService;
         this.scheduleService = scheduleService;
+        this.weightLogService = weightLogService;
         this.clock = clock;
     }
 
@@ -82,8 +87,11 @@ public class DashboardService {
             return new Health(false, null, null, null, null, null);
         }
         NutritionTarget target = targetRepository.findByUserId(userId).orElse(null);
+        // Bản ghi mới nhất có thể khác cân nặng hồ sơ: ghi cân nặng không tự đổi hồ sơ (BR-H02).
+        WeightLogRef latest = weightLogService.latest(userId)
+            .map(log -> new WeightLogRef(log.logDate(), log.weightKg())).orElse(null);
         return new Health(true, profile.getWeightKg(), profile.getHeightCm(),
-            target == null ? null : target.getBmi(), profile.getGoal(), null);
+            target == null ? null : target.getBmi(), profile.getGoal(), latest);
     }
 
     private Nutrition nutrition(UUID userId, LocalDate date) {

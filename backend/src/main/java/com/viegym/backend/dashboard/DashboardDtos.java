@@ -21,8 +21,8 @@ public final class DashboardDtos {
     }
 
     /**
-     * {@code hasProfile=false} → các trường còn lại null. {@code latestWeightLog} luôn null cho tới
-     * khi có nhật ký cân nặng (ngày 13).
+     * {@code hasProfile=false} → các trường còn lại null. {@code latestWeightLog} là bản ghi cân nặng có
+     * ngày đo mới nhất (null khi chưa ghi); {@code weightKg} vẫn là cân nặng của hồ sơ (BR-H02).
      */
     public record Health(boolean hasProfile, BigDecimal weightKg, BigDecimal heightCm, BigDecimal bmi, Goal goal,
                          WeightLogRef latestWeightLog) {

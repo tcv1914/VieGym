@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_client.dart';
 import '../../system/connection_page.dart';
 import '../application/auth_controller.dart';
+import 'forgot_password_page.dart';
 import 'register_page.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
@@ -70,6 +71,20 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     );
   }
 
+  Future<void> _openForgot() async {
+    final email = await Navigator.of(context).push<String>(
+      MaterialPageRoute(
+          builder: (_) => ForgotPasswordPage(initialEmail: _email.text.trim())),
+    );
+    if (email == null || !mounted) return;
+    _email.text = email;
+    _password.clear();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+          content: Text('Đã đặt lại mật khẩu. Hãy đăng nhập bằng mật khẩu mới.')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final notice = _error ?? widget.message;
@@ -128,6 +143,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         dimension: 20,
                         child: CircularProgressIndicator(strokeWidth: 2))
                     : const Text('Đăng nhập'),
+              ),
+              TextButton(
+                key: const Key('login-forgot'),
+                onPressed: _submitting ? null : _openForgot,
+                child: const Text('Quên mật khẩu?'),
               ),
               TextButton(
                 onPressed: _submitting ? null : _openRegister,
