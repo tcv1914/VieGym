@@ -27,6 +27,17 @@ class HealthCalculatorTest {
         assertResult(r, "22.49", "1607.5", "2491.6", "2791.6", "117.0", "406.4", "77.5", false);
     }
 
+    // T-F01 (ngày 16) — fixture của plan: nam 25 tuổi, 175 cm, 70 kg, SEDENTARY (1,2), MAINTAIN.
+    // Plan dùng chính sách demo 25/50/25; dự án theo docs/11 (protein 1,6 g/kg, fat 25%, carbs phần còn lại).
+    @Test
+    void planDay16FixtureMaleMaintain() {
+        Result r = calc(Sex.MALE, 25, "175", "70", ActivityLevel.SEDENTARY, Goal.MAINTAIN);
+        // BMI 70 / 1,75² = 22,857… → 22,86; BMR 700 + 1093,75 − 125 + 5 = 1673,75 → 1673,8 (HALF_UP);
+        // TDEE 2008,5; protein min(112; 0,35 × 2008,5 / 4 = 175,74) = 112; fat 502,125 / 9 = 55,79…;
+        // carbs (2008,5 − 448 − 502,125) / 4 = 264,59375 → 264,6.
+        assertResult(r, "22.86", "1673.8", "2008.5", "2008.5", "112.0", "264.6", "55.8", false);
+    }
+
     // H01 — docs/04 §3.7 ca 2: protein chạm trần 35%.
     @Test
     void proteinCapCaseFemaleLoseWeight() {
