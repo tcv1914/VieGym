@@ -1,0 +1,104 @@
+# VieGym STAGING (ngày 15): môi trường test tích hợp, tách khỏi DEV (infra/compose.yaml).
+# - Database, volume, khóa JWT, khóa nội bộ AI, mật khẩu riêng; secret nằm trong infra/staging/.env
+#   và infra/staging/secrets/ (đều bị .gitignore chặn). Mẫu: .env.example.
+# - Thứ tự: postgres healthy → backend (Flyway migrate khi khởi động) healthy → admin.
+#   ai-service healthy trước backend để câu hỏi đầu tiên không gặp lỗi kết nối.
+# - Chỉ backend (18080), admin (15173), mailpit (18025) mở ra 127.0.0.1. PostgreSQL và ai-service
+#   chỉ nằm trong mạng nội bộ compose, không publish cổng.
+# Chạy: xem docs/34-day-15-integration.md §3.
+name: viegym-staging
+
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: viegym_staging
+      POSTGRES_USER: viegym_staging
+      POSTGRES_PASSWORD: ${STAGING_DB_PASSWORD:?Set STAGING_DB_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U viegym_staging -d viegym_staging"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  mailpit:
+    image: axllent/mailpit:v1.27
+    ports:
+      - "127.0.0.1:18025:8025"
+    restart: unless-stopped
+
+  ai-service:
+    build: ../../ai-service
+    image: viegym-ai:staging
+    environment:
+      GEMINI_API_KEY: ${GEMINI_API_KEY:?Set GEMINI_API_KEY}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
+      AI_INTERNAL_KEY: ${AI_INTERNAL_KEY:?Set AI_INTERNAL_KEY}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2)"]
+      # Lúc khởi động kiểm tra mỗi 2 giây; sau đó 30 giây/lần để log truy cập không bị lấp.
+      interval: 30s
+      start_interval: 2s
+      start_period: 30s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+
+  backend:
+    build: ../../backend
+    image: viegym-backend:staging
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ai-service:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+    environment:
+      SERVER_ADDRESS: 0.0.0.0
+      DB_URL: jdbc:postgresql://postgres:5432/viegym_staging
+      DB_USER: viegym_staging
+      DB_PASSWORD: ${STAGING_DB_PASSWORD}
+      JWT_PRIVATE_KEY_LOCATION: file:/run/secrets/viegym/jwt-private.pem
+      JWT_PUBLIC_KEY_LOCATION: file:/run/secrets/viegym/jwt-public.pem
+      AI_SERVICE_URL: http://ai-service:8000
+      AI_INTERNAL_KEY: ${AI_INTERNAL_KEY}
+      MAIL_HOST: mailpit
+      MAIL_PORT: "1025"
+      MAIL_FROM: "VieGym Staging <no-reply@staging.viegym.local>"
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      LOGGING_LEVEL_ROOT: INFO
+      LOGGING_LEVEL_COM_VIEGYM: INFO
+    volumes:
+      - ./secrets:/run/secrets/viegym:ro
+    ports:
+      - "127.0.0.1:18080:8080"
+    healthcheck:
+      # Ảnh JRE không có curl: gọi /api/v1/system/health (có truy vấn DB) bằng /dev/tcp của bash.
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080 && printf 'GET /api/v1/system/health HTTP/1.0\r\n\r\n' >&3 && head -n1 <&3 | grep -q ' 200 '"]
+      interval: 30s
+      start_interval: 2s
+      start_period: 90s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+
+  admin:
+    image: nginx:1.27-alpine
+    depends_on:
+      backend:
+        condition: service_healthy
+    volumes:
+      # Bản build tĩnh: admin> npm run build (tạo admin/dist).
+      - ../../admin/dist:/usr/share/nginx/html:ro
+      - ./admin-nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "127.0.0.1:15173:80"
+    restart: unless-stopped
+
+volumes:
+  pgdata:

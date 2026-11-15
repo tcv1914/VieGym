@@ -1,0 +1,5 @@
+# Không đưa .env (khóa Gemini), venv, cache vào build context.
+*
+!requirements.txt
+!main.py
+!providers.py
