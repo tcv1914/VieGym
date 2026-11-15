@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { api, ApiError, describeError } from '../api/client';
 import { useCurrentUser } from '../auth/AuthContext';
+import { safeRedirectPath } from '../auth/redirect';
 import { Alert, Field } from '../components/common';
 
 export function LoginPage() {
@@ -14,7 +15,7 @@ export function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
-  const from = (location.state as { from?: string } | null)?.from ?? '/foods';
+  const from = safeRedirectPath((location.state as { from?: unknown } | null)?.from);
   if (user) return <Navigate to={from} replace />;
 
   const submit = async (e: FormEvent) => {

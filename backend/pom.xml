@@ -28,6 +28,10 @@
 	</scm>
 	<properties>
 		<java.version>21</java.version>
+		<!-- Ngày 17 (docs/37 §4): bản vá cùng nhánh cho lỗ hổng đã biết của Boot 4.1.1 mặc định
+		     (Tomcat 11.0.24, Jackson 3.1.5). Bỏ khi nâng Spring Boot lên bản đã kèm phiên bản mới. -->
+		<tomcat.version>11.0.25</tomcat.version>
+		<jackson-bom.version>3.1.7</jackson-bom.version>
 	</properties>
 	<dependencies>
 		<dependency>

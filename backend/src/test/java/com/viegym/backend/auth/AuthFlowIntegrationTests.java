@@ -138,6 +138,37 @@ class AuthFlowIntegrationTests {
             .andExpect(jsonPath("$.code").value("INVALID_CREDENTIALS"));
     }
 
+    // BR-A09 (ngày 17, BUG-01): 5 lần sai/email → 429 + Retry-After, kể cả khi lần sau đúng mật khẩu.
+    // Email không tồn tại cũng bị chặn y hệt, nên giới hạn không giúp dò tài khoản.
+    @Test
+    void repeatedWrongPasswordsAreRateLimitedPerEmail() throws Exception {
+        String email = uniqueEmail();
+        String unknown = uniqueEmail();
+        register(email);
+        for (int i = 0; i < 5; i++) {
+            loginRequest(email, "SaiMatkhau999").andExpect(status().isUnauthorized());
+            loginRequest(unknown, "SaiMatkhau999").andExpect(status().isUnauthorized());
+        }
+        for (String target : new String[] {email, unknown}) {
+            loginRequest(target, PASSWORD)
+                .andExpect(status().isTooManyRequests())
+                .andExpect(jsonPath("$.code").value("RATE_LIMITED"))
+                .andExpect(jsonPath("$.accessToken").doesNotExist())
+                .andExpect(header().exists(HttpHeaders.RETRY_AFTER));
+        }
+        // Tài khoản khác vẫn đăng nhập được; đúng mật khẩu sau 4 lần sai xóa bộ đếm.
+        String other = uniqueEmail();
+        register(other);
+        for (int i = 0; i < 4; i++) {
+            loginRequest(other, "SaiMatkhau999").andExpect(status().isUnauthorized());
+        }
+        login(other);
+        for (int i = 0; i < 4; i++) {
+            loginRequest(other, "SaiMatkhau999").andExpect(status().isUnauthorized());
+        }
+        login(other);
+    }
+
     // Public endpoint không bị chặn vì app gửi kèm access token cũ/hỏng.
     @Test
     void staleBearerHeaderDoesNotBlockLogin() throws Exception {

@@ -30,7 +30,8 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name
 DEADLINE_SECONDS = float(os.getenv("AI_DEADLINE_SECONDS", "25"))
 MAX_HISTORY = 20
 
-app = FastAPI(title="VieGym AI Service")
+# Dịch vụ nội bộ: không phục vụ trang tài liệu/OpenAPI (ngày 17, I29).
+app = FastAPI(title="VieGym AI Service", docs_url=None, redoc_url=None, openapi_url=None)
 
 
 class HistoryItem(BaseModel):

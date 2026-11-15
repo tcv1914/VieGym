@@ -49,7 +49,7 @@ Mức theo plan ngày 15 §5. Hiện **không có P0**. P1 duy nhất chỉ ch�
 
 | ID | Mức | Môi trường | Mô tả | Expected / actual | Hướng xử lý | Trạng thái |
 |---|---|---|---|---|---|---|
-| BUG-01 | P2 | mọi môi trường | Chưa giới hạn tần suất `/auth/login` (docs/09 §5, docs/10 §7). | Expected: đăng nhập sai liên tục bị chặn tạm thời. Actual: không giới hạn, có thể dò mật khẩu. | Làm ở ngày 17 (kiểm thử bảo mật), cùng kiểu với giới hạn theo IP của reset. | Mở |
+| BUG-01 | P2 | mọi môi trường | Chưa giới hạn tần suất `/auth/login` (docs/09 §5, docs/10 §7). | Expected: đăng nhập sai liên tục bị chặn tạm thời. Actual (trước ngày 17): không giới hạn. | Ngày 17: BR-A09, `LoginAttemptLimiter`; retest `repeatedWrongPasswordsAreRateLimitedPerEmail`, `LoginAttemptLimiterTest`, `qa/session_checks.py` S24–S25 (docs/37 §3). | **Đã sửa** |
 | BUG-02 | P2 | DEV, Android | Nút "Gửi lại mã" ở màn quên mật khẩu: trong lần test ngày 13, server không thấy request thứ hai (docs/30 §5, bước 16). | Expected: mã mới, mã cũ hết hiệu lực. Actual: chưa xác nhận được. Backend đã có test `newCodeInvalidatesPreviousOne`. | Test lại trên staging hôm nay (bảng docs/34 §4, bước 12). | Mở, chờ test lại |
 | BUG-03 | P3 | STAGING | Chatbot viết số thập phân bằng dấu chấm ("1.5 phần", "2258.3 kcal"); app hiển thị số theo vi-VN bằng dấu phẩy (BR-G06). | Expected: "1,5". Actual: "1.5". Nghĩa vẫn đúng. | Thêm một câu hướng dẫn định dạng số vào system prompt, hoặc chấp nhận. | Mở |
 | BUG-04 | P3 | DEV | Chatbot nói "tuần này chưa có buổi nào" khi tuần có 1 buổi xong + 1 buổi hủy (docs/28 §6). | Context không có tóm tắt tuần. Không bịa số. | Thêm `training.week` vào context nếu còn thời gian. | Mở |
@@ -57,6 +57,13 @@ Mức theo plan ngày 15 §5. Hiện **không có P0**. P1 duy nhất chỉ ch�
 | BUG-06 | P3 | — | Chưa kiểm tra tay trường hợp access token hết hạn thật (15 phút) trên thiết bị (docs/10 §7). Đã có test tự động single-flight. | — | Bảng docs/34 §4: để app chờ hơn 15 phút rồi thao tác. | Mở |
 | LIM-01 | P3 | STAGING | Backend chạy trong container thấy mọi client qua cùng một IP của gateway Docker, nên giới hạn 10/IP/15 phút của reset dùng chung cho mọi máy. | Chỉ ảnh hưởng staging (một người test). | Ghi trong docs/34 §3. Release thật cần cấu hình proxy tin cậy. | Chấp nhận |
 | LIM-02 | P3 | mọi môi trường | Chưa có job dọn phiên/token/mã reset hết hạn (docs/10 §7). | Bảng tăng dần. | Sau MVP. | Chấp nhận |
+| SEC-01 | P2 | mọi môi trường | Dependency có lỗ hổng đã biết: Tomcat 11.0.24, Jackson 3.1.5, react-router-dom 6.28.0, certifi/dnspython/pyasn1/opentelemetry (docs/37 §4). | — | Ngày 17: nâng bản vá cùng major, quét lại sạch (trừ công cụ dev của admin). | **Đã sửa** |
+| SEC-02 | P3 | mọi môi trường | ai-service mở `/docs`, `/openapi.json` (chỉ trong mạng nội bộ). | — | Ngày 17: tắt; pytest `test_docs_and_openapi_are_disabled`. | **Đã sửa** |
+| SEC-03 | P3 | mọi môi trường | Gọi thẳng `GET /error` trả 500 `{"status":999}`. | Không lộ dữ liệu. | Chấp nhận (docs/37 §6). | Chấp nhận |
+| SEC-04 | P3 | DEV | Công cụ dev của admin (vitest 2 / tinypool, esbuild của vite 5) có cảnh báo; chỉ chạy trên máy dev, không có trong bản build. | — | Nâng major sau release. | Chấp nhận |
+| SEC-05 | P3 | mọi môi trường | `POST /auth/register` trả `409 EMAIL_ALREADY_EXISTS`, nên dò được email đã đăng ký; endpoint này chưa có rate limit. | Theo hợp đồng ngày 2. | Sau MVP: rate limit đăng ký theo IP. | Chấp nhận |
+| AI-01 | **P1 (demo)** | STAGING/DEV | Khóa Gemini gói miễn phí: 20 request/ngày/project. Hết lượt thì mọi câu hỏi → 502, thông báo "đang gặp sự cố, thử lại" (docs/37 §5). | Expected: chatbot dùng được suốt buổi demo, hoặc báo rõ đã hết lượt. | Chủ dự án quyết định: khóa trả phí hoặc giới hạn kịch bản demo; sửa thông báo lỗi. | Mở |
+| AI-02 | P3 | STAGING | ai-service không nhận kết nối → 504 `AI_TIMEOUT` thay vì 502. | Cả hai retryable. | Phân loại connect timeout riêng. | Mở |
 
 Mẫu ghi lỗi mới: ID; môi trường/build (commit, APK); tài khoản test; bước tái hiện; expected/actual; ảnh/log đã che bí mật; mức; người xử lý; commit sửa; kết quả retest.
 

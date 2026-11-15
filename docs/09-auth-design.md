@@ -79,7 +79,10 @@ Endpoint `/auth/*` bỏ qua header `Authorization`: app còn giữ access token 
 
 - **Refresh đồng thời cùng một token (BR-A04).** Request thứ hai chờ khóa, sau đó thấy token đã consumed và coi là dùng lại. Kết quả là mọi phiên của user bị thu hồi, **kể cả phiên request đầu vừa nhận token mới**. Đây là hành vi chủ ý vì backend không phân biệt được "client bị lỗi" với "token bị lộ". App tránh được nhờ single-flight. Client khác (Postman, script) gửi song song sẽ bị đăng xuất. Integration test AUTH-13 kiểm tra đúng một request trả 200.
 - **Mỗi request riêng tư tốn một truy vấn** `auth_sessions JOIN users`. Ở quy mô MVP thì chấp nhận được. Nếu cần tối ưu thì thêm cache ngắn hạn, nhưng logout sẽ trễ tương ứng.
-- **Không có giới hạn tần suất đăng nhập** ở ngày 4. Rate limit hiện chỉ chốt cho `/auth/reset-password` (BR-A06); login sẽ làm cùng lúc.
+- ~~Không có giới hạn tần suất đăng nhập~~. Đã làm ở ngày 17 (BR-A09, `LoginAttemptLimiter`), xem docs/37 §3.
+  - Bộ đếm nằm trong bộ nhớ, một instance, mất khi restart.
+  - Kiểm tra và ghi lần sai không nằm trong cùng một khóa, nên vài request gửi đồng thời có thể lọt quá ngưỡng một chút.
+  - Ngưỡng theo email cho phép người khác cố ý khóa tạm một email trong 15 phút. Ngưỡng theo IP thì một NAT dùng chung có thể chặn cả nhóm người. Chấp nhận ở MVP.
 - **Bảng phiên và token chỉ tăng.** Chưa có job dọn bản ghi hết hạn; thêm khi làm phần vận hành.
 - Mã lỗi khi access token hết hạn là `401 UNAUTHORIZED` (không tách `TOKEN_EXPIRED`), vì app xử lý mọi 401 như nhau.
 

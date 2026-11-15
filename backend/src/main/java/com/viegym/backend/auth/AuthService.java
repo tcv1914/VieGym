@@ -9,6 +9,7 @@ import com.viegym.backend.auth.repository.UserRepository;
 import com.viegym.backend.common.exception.ApiException;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
+import java.util.Map;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -23,15 +24,17 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final SessionService sessionService;
     private final Clock clock;
+    private final LoginAttemptLimiter loginLimiter;
     // So khớp với hash giả khi email không tồn tại để thời gian phản hồi gần như nhau.
     private final String dummyPasswordHash;
 
     public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder,
-                       SessionService sessionService, Clock clock) {
+                       SessionService sessionService, Clock clock, LoginAttemptLimiter loginLimiter) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.sessionService = sessionService;
         this.clock = clock;
+        this.loginLimiter = loginLimiter;
         this.dummyPasswordHash = passwordEncoder.encode("viegym-dummy-password-1");
     }
 
@@ -53,18 +56,27 @@ public class AuthService {
         }
     }
 
-    public TokenResponse login(LoginRequest request) {
+    public TokenResponse login(LoginRequest request, String clientIp) {
+        // BR-A09: chặn trước khi so mật khẩu, nên đoán đúng trong lúc bị chặn cũng không lọt.
+        long wait = loginLimiter.retryAfterSeconds(request.email(), clientIp);
+        if (wait > 0) {
+            throw new ApiException(HttpStatus.TOO_MANY_REQUESTS, "RATE_LIMITED",
+                "Bạn đăng nhập sai quá nhiều lần, vui lòng chờ khoảng " + Math.max(1, (wait + 59) / 60)
+                    + " phút rồi thử lại", null, Map.of("retryAfterSeconds", wait));
+        }
         User user = userRepository.findByEmail(request.email()).orElse(null);
         boolean passwordMatches = utf8Length(request.password()) <= BCRYPT_MAX_BYTES
             && passwordEncoder.matches(request.password(), user != null ? user.getPasswordHash() : dummyPasswordHash);
         // BR-A05: không nói rõ sai email hay sai mật khẩu.
         if (user == null || !passwordMatches) {
+            loginLimiter.recordFailure(request.email(), clientIp);
             throw new ApiException(HttpStatus.UNAUTHORIZED, "INVALID_CREDENTIALS", "Email hoặc mật khẩu không đúng");
         }
         // Chỉ báo khóa khi đã đúng mật khẩu, nên không lộ trạng thái cho người đoán mò.
         if (user.isLocked()) {
             throw SessionService.accountLocked();
         }
+        loginLimiter.recordSuccess(request.email());
         return sessionService.start(user);
     }
 

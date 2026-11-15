@@ -99,7 +99,7 @@ Lỗi: `400 VALIDATION_ERROR`, `409 EMAIL_ALREADY_EXISTS`.
 }
 ```
 
-Lỗi: `400`, `401 INVALID_CREDENTIALS`, `403 ACCOUNT_LOCKED`.
+Lỗi: `400`, `401 INVALID_CREDENTIALS`, `403 ACCOUNT_LOCKED`, [ngày 17] `429 RATE_LIMITED` (BR-A09). Khi 429, response có header `Retry-After` và `details.retryAfterSeconds`; lần thử bị chặn trước khi kiểm tra mật khẩu.
 `hasHealthProfile = false` → app chuyển sang màn hồ sơ sức khỏe.
 
 ### `POST /auth/refresh` — Public

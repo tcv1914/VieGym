@@ -27,6 +27,7 @@ Ký hiệu: **[Đã chốt]** — quyết định thiết kế MVP; **[Cần xá
 | BR-A06 | Quên mật khẩu luôn trả `204` dù email có tồn tại hay không. Mã đặt lại 6 chữ số, hạn 15 phút, dùng một lần; tạo mã mới vô hiệu mã cũ. Nhập sai tối đa 5 lần/mã, lần thứ 5 vô hiệu mã (`used_at = now()`); `/auth/reset-password` giới hạn thêm 10 yêu cầu/IP/15 phút [Đã chốt]. Đặt lại thành công thu hồi mọi refresh token. |
 | BR-A07 | Kênh gửi mã đặt lại: email qua SMTP; môi trường dev ghi ra log/Mailpit. [Đã chốt] [Ngày 13] Dev dùng Mailpit (`infra/compose.yaml`), không ghi mã ra log. Gửi sau khi mã đã commit, ngoài luồng request, thử tối đa 3 lần. |
 | BR-A08 | [Ngày 13] `/auth/forgot-password` vượt giới hạn (3/email/giờ hoặc 10/IP/15 phút) vẫn trả `204` nhưng không tạo mã, không gửi. Đặt lại thành công không tự đăng nhập; mọi phiên (cả access token đang dùng) bị thu hồi. |
+| BR-A09 | [Ngày 17] Đăng nhập sai bị giới hạn theo cửa sổ trượt 15 phút: 5 lần/email (không phân biệt hoa thường) và 20 lần/IP. Vượt ngưỡng thì mọi lần thử, kể cả đúng mật khẩu, trả `429 RATE_LIMITED` kèm `Retry-After` cho tới khi lần sai cũ nhất ra khỏi cửa sổ. Email không tồn tại được đếm như email có thật. Đăng nhập đúng xóa bộ đếm của email đó (không xóa bộ đếm của IP). |
 
 ## 3. Chỉ số sức khỏe và mục tiêu dinh dưỡng
 

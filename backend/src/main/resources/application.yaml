@@ -59,6 +59,11 @@ viegym:
     per-minute: 5
     per-day: 50
     history-size: 10
+  login-limit:
+    # BR-A09 (ngày 17): đăng nhập sai quá 5 lần/email hoặc 20 lần/IP trong 15 phút → 429, chờ rồi thử lại.
+    max-failures-per-email: 5
+    max-failures-per-ip: 20
+    window: 15m
   password-reset:
     # BR-A06 / docs/05 §2.
     code-ttl: 15m

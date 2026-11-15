@@ -1,0 +1,6 @@
+# Chỉ dùng khi chạy test (classpath:/config/ ghi đè classpath:/application.yaml, các khóa khác giữ nguyên).
+# Mọi request MockMvc đến từ 127.0.0.1: giới hạn theo IP của BR-A09 sẽ dồn lần sai của mọi test class
+# dùng chung context. Giới hạn theo IP được kiểm bằng unit test LoginAttemptLimiterTest.
+viegym:
+  login-limit:
+    max-failures-per-ip: 100000

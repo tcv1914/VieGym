@@ -128,3 +128,13 @@ def test_invalid_payload_rejected_before_provider(fake, client, overrides):
 
 def test_health_is_public(client):
     assert client.get("/health").json()["status"] == "UP"
+
+
+def test_docs_and_openapi_are_disabled():
+    # Ngày 17 (I29): dịch vụ nội bộ không phục vụ /docs, /redoc, /openapi.json.
+    from fastapi.testclient import TestClient
+    from main import app
+
+    client = TestClient(app)
+    for path in ("/docs", "/redoc", "/openapi.json"):
+        assert client.get(path).status_code == 404
