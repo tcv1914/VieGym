@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Chỉ bản debug: giữ hành vi cũ (usesCleartextTraffic) để chạy với backend trên máy dev qua
+     127.0.0.1 (adb reverse), 10.0.2.2 (emulator) hoặc IP LAN. Bản release dùng src/main/res/xml. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>

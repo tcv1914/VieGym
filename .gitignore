@@ -37,3 +37,6 @@ Thumbs.db
 # Khóa ký JWT và secret local
 secrets/
 *.pem
+
+# Dataset bài tập tải về (không commit)
+exercises-dataset-main/

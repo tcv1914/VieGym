@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ngày 18: bản release mặc định chặn HTTP thường. Chỉ cho phép với loopback để dùng staging nội bộ qua
+     `adb reverse` (lưu lượng không rời máy, đi qua USB). Mọi host khác vẫn bắt buộc HTTPS; bản phát hành
+     công khai phải dùng API https:// và có thể bỏ ngoại lệ này. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">127.0.0.1</domain>
+        <domain includeSubdomains="false">localhost</domain>
+    </domain-config>
+</network-security-config>
