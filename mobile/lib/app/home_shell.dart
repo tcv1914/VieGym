@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../features/auth/presentation/auth_widgets.dart';
 import '../features/dashboard/application/dashboard_providers.dart';
 import '../features/dashboard/presentation/dashboard_page.dart';
 import '../features/exercise/presentation/exercise_list_page.dart';
@@ -47,6 +48,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: current.index,
+        indicatorColor: AuthGymColors.vibrantGreen.withValues(alpha: 0.16),
         labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
         onDestinationSelected: (i) {
           final tab = HomeTab.values[i];
@@ -59,31 +61,58 @@ class _HomeShellState extends ConsumerState<HomeShell> {
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
+            selectedIcon: Icon(
+              Icons.home_rounded,
+              color: AuthGymColors.heroMid,
+            ),
             label: 'Tổng quan',
           ),
           NavigationDestination(
             icon: Icon(Icons.monitor_heart_outlined),
+            selectedIcon: Icon(
+              Icons.monitor_heart_rounded,
+              color: AuthGymColors.heroMid,
+            ),
             label: 'Sức khỏe',
           ),
           NavigationDestination(
-            icon: Icon(Icons.fitness_center),
+            icon: Icon(Icons.fitness_center_outlined),
+            selectedIcon: Icon(
+              Icons.fitness_center_rounded,
+              color: AuthGymColors.heroMid,
+            ),
             label: 'Bài tập',
           ),
           NavigationDestination(
             icon: Icon(Icons.event_note_outlined),
+            selectedIcon: Icon(
+              Icons.event_note_rounded,
+              color: AuthGymColors.heroMid,
+            ),
             label: 'Giáo án',
           ),
           NavigationDestination(
-            icon: Icon(Icons.calendar_month),
+            icon: Icon(Icons.calendar_month_outlined),
+            selectedIcon: Icon(
+              Icons.calendar_month_rounded,
+              color: AuthGymColors.heroMid,
+            ),
             label: 'Lịch tập',
           ),
           NavigationDestination(
-            icon: Icon(Icons.dinner_dining),
+            icon: Icon(Icons.dinner_dining_outlined),
+            selectedIcon: Icon(
+              Icons.dinner_dining_rounded,
+              color: AuthGymColors.heroMid,
+            ),
             label: 'Thực đơn',
           ),
           NavigationDestination(
-            icon: Icon(Icons.restaurant_menu),
+            icon: Icon(Icons.restaurant_menu_outlined),
+            selectedIcon: Icon(
+              Icons.restaurant_menu_rounded,
+              color: AuthGymColors.heroMid,
+            ),
             label: 'Món ăn',
           ),
         ],
