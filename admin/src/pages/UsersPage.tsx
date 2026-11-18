@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { api, ApiError, describeError } from '../api/client';
 import type { AdminUserItem, UserStatus } from '../api/types';
 import { useCurrentUser } from '../auth/AuthContext';
-import { Alert, Field, Modal, Pagination, StatusBadge } from '../components/common';
+import { Alert, Field, Modal, Pagination, StatusBadge, getInitials } from '../components/common';
+import { IconLock, IconSearch, IconShield, IconUnlock, IconUsers } from '../components/icons';
 import { useDebounced, usePagedList } from '../components/usePagedList';
 
 export function UsersPage() {
@@ -26,44 +27,84 @@ export function UsersPage() {
 
   const done = (user: AdminUserItem) => {
     setTarget(null);
-    setNotice(user.status === 'LOCKED'
-      ? `Đã khóa ${user.email}. Mọi phiên đăng nhập của tài khoản này đã bị thu hồi.`
-      : `Đã mở khóa ${user.email}. Người dùng cần đăng nhập lại.`);
+    setNotice(
+      user.status === 'LOCKED'
+        ? `Đã khóa ${user.email}. Mọi phiên đăng nhập của tài khoản này đã bị thu hồi.`
+        : `Đã mở khóa ${user.email}. Người dùng cần đăng nhập lại.`,
+    );
     void reload();
   };
 
+  const hasFilters = Boolean(keyword.trim() || status);
+
   return (
-    <section>
+    <section className="page-section">
       <div className="page-header">
-        <h1>Tài khoản</h1>
+        <div className="page-header-title">
+          <div className="title-row">
+            <span className="page-icon page-icon-sky">
+              <IconUsers size={20} />
+            </span>
+            <div>
+              <h1>Tài khoản Người dùng</h1>
+              <p className="page-subtitle">
+                Giám sát danh sách người dùng, vai trò hệ thống và thu hồi phiên đăng nhập tức thì khi cần khóa tài
+                khoản.
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="page-header-actions">
+          {data && <span className="count-pill">{data.totalItems.toLocaleString('vi-VN')} tài khoản</span>}
+        </div>
       </div>
+
       <Alert kind="success">{notice}</Alert>
-      <div className="filters">
-        <input
-          type="search"
-          placeholder="Tìm theo email hoặc họ tên"
-          value={keyword}
-          maxLength={100}
-          onChange={(e) => setKeyword(e.target.value)}
-        />
-        <select value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Trạng thái">
-          <option value="">Mọi trạng thái</option>
-          <option value="ACTIVE">Hoạt động</option>
-          <option value="LOCKED">Đã khóa</option>
-        </select>
+
+      <div className="toolbar-card">
+        <div className="filters">
+          <div className="search-field">
+            <IconSearch size={16} className="search-icon" />
+            <input
+              type="search"
+              placeholder="Tìm theo địa chỉ email hoặc họ tên…"
+              value={keyword}
+              maxLength={100}
+              onChange={(e) => setKeyword(e.target.value)}
+            />
+          </div>
+          <select value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Trạng thái">
+            <option value="">Mọi trạng thái</option>
+            <option value="ACTIVE">Hoạt động</option>
+            <option value="LOCKED">Đã khóa</option>
+          </select>
+          {hasFilters && (
+            <button
+              type="button"
+              className="btn-ghost"
+              onClick={() => {
+                setKeyword('');
+                setStatus('');
+              }}
+            >
+              Xóa lọc
+            </button>
+          )}
+        </div>
       </div>
 
       <Alert kind="error">{error}</Alert>
+
       <div className={`table-wrap${loading ? ' is-loading' : ''}`}>
         <table>
           <thead>
             <tr>
-              <th>Email</th>
-              <th>Họ tên</th>
+              <th>Tài khoản</th>
+              <th>Họ và tên</th>
               <th>Vai trò</th>
-              <th>Ngày tạo</th>
+              <th>Ngày tham gia</th>
               <th>Trạng thái</th>
-              <th />
+              <th className="action-col">Thao tác</th>
             </tr>
           </thead>
           <tbody>
@@ -73,18 +114,43 @@ export function UsersPage() {
               const manageable = u.role === 'USER' && u.id !== me?.id;
               return (
                 <tr key={u.id}>
-                  <td>{u.email}</td>
-                  <td>{u.fullName}</td>
-                  <td>{u.role === 'ADMIN' ? 'Quản trị' : 'Người dùng'}</td>
-                  <td>{new Date(u.createdAt).toLocaleDateString('vi-VN')}</td>
-                  <td><StatusBadge active={!locked} on="Hoạt động" off="Đã khóa" /></td>
                   <td>
+                    <div className="user-cell">
+                      <span className={`avatar-sm${u.role === 'ADMIN' ? ' avatar-admin' : ''}`}>
+                        {getInitials(u.fullName)}
+                      </span>
+                      <span className="cell-title">{u.email}</span>
+                    </div>
+                  </td>
+                  <td>{u.fullName}</td>
+                  <td>
+                    {u.role === 'ADMIN' ? (
+                      <span className="tag tag-admin">
+                        <IconShield size={12} /> Quản trị
+                      </span>
+                    ) : (
+                      <span className="tag tag-neutral">Người dùng</span>
+                    )}
+                  </td>
+                  <td>{new Date(u.createdAt).toLocaleDateString('vi-VN')}</td>
+                  <td>
+                    <StatusBadge active={!locked} on="Hoạt động" off="Đã khóa" offDanger />
+                  </td>
+                  <td className="action-col">
                     {manageable ? (
-                      <button type="button" className={locked ? '' : 'danger'} onClick={() => { setNotice(null); setTarget(u); }}>
-                        {locked ? 'Mở khóa' : 'Khóa'}
+                      <button
+                        type="button"
+                        className={locked ? 'btn-row-edit' : 'danger btn-row-lock'}
+                        onClick={() => {
+                          setNotice(null);
+                          setTarget(u);
+                        }}
+                      >
+                        {locked ? <IconUnlock size={14} /> : <IconLock size={14} />}
+                        <span>{locked ? 'Mở khóa' : 'Khóa'}</span>
                       </button>
                     ) : (
-                      <span className="muted small">{u.id === me?.id ? 'Bạn' : '—'}</span>
+                      <span className="muted small">{u.id === me?.id ? 'Tài khoản của bạn' : 'Được bảo vệ'}</span>
                     )}
                   </td>
                 </tr>
@@ -92,7 +158,9 @@ export function UsersPage() {
             })}
             {data && data.items.length === 0 && (
               <tr>
-                <td colSpan={6} className="muted center">Không có tài khoản nào phù hợp.</td>
+                <td colSpan={6} className="empty-cell">
+                  Không có tài khoản nào phù hợp với bộ lọc hiện tại.
+                </td>
               </tr>
             )}
           </tbody>
@@ -105,7 +173,11 @@ export function UsersPage() {
   );
 }
 
-function StatusDialog({ user, onDone, onClose }: {
+function StatusDialog({
+  user,
+  onDone,
+  onClose,
+}: {
   user: AdminUserItem;
   onDone: (u: AdminUserItem) => void;
   onClose: () => void;
@@ -136,27 +208,52 @@ function StatusDialog({ user, onDone, onClose }: {
   };
 
   return (
-    <Modal title={next === 'LOCKED' ? 'Khóa tài khoản' : 'Mở khóa tài khoản'} onClose={onClose}>
+    <Modal
+      title={next === 'LOCKED' ? 'Xác nhận khóa tài khoản' : 'Mở khóa tài khoản'}
+      size="md"
+      onClose={onClose}
+    >
       <form onSubmit={submit} className="form" noValidate>
-        <p>
-          {next === 'LOCKED' ? 'Khóa' : 'Mở khóa'} <strong>{user.email}</strong>?
-        </p>
-        <p className="muted">
+        <div className="dialog-target-box">
+          <span className="avatar-sm">{getInitials(user.fullName)}</span>
+          <div>
+            <div className="cell-title">{user.fullName}</div>
+            <div className="muted small">{user.email}</div>
+          </div>
+        </div>
+
+        <p className="muted" style={{ margin: 0 }}>
           {next === 'LOCKED'
-            ? 'Người dùng bị đăng xuất khỏi mọi thiết bị ngay ở thao tác kế tiếp và không đăng nhập được cho tới khi mở khóa.'
-            : 'Mở khóa không khôi phục phiên cũ; người dùng phải đăng nhập lại.'}
+            ? 'Người dùng sẽ bị đăng xuất khỏi mọi thiết bị ngay ở thao tác kế tiếp và không thể đăng nhập cho tới khi được mở khóa.'
+            : 'Mở khóa không tự khôi phục các phiên cũ đã thu hồi; người dùng cần đăng nhập lại bằng mật khẩu.'}
         </p>
+
         <Alert kind="error">{error}</Alert>
-        <Field label={next === 'LOCKED' ? 'Lý do khóa *' : 'Ghi chú'} error={fieldError}>
-          <textarea rows={3} maxLength={300} value={reason} onChange={(e) => setReason(e.target.value)} />
+
+        <Field
+          label={next === 'LOCKED' ? 'Lý do khóa tài khoản *' : 'Ghi chú mở khóa (tùy chọn)'}
+          error={fieldError}
+          hint="Nội dung này được ghi nhận vào nhật ký kiểm toán (audit_logs)"
+        >
+          <textarea
+            rows={3}
+            placeholder={next === 'LOCKED' ? 'Nhập lý do khóa (ví dụ: Vi phạm điều khoản sử dụng)…' : 'Ghi chú thêm…'}
+            maxLength={300}
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+          />
         </Field>
+
         <div className="form-actions">
           <button type="button" onClick={onClose} disabled={busy}>
             Hủy
           </button>
-          <button type="submit" className={next === 'LOCKED' ? 'danger' : 'primary'}
-            disabled={busy || (next === 'LOCKED' && !reason.trim())}>
-            {busy ? 'Đang lưu…' : next === 'LOCKED' ? 'Khóa' : 'Mở khóa'}
+          <button
+            type="submit"
+            className={next === 'LOCKED' ? 'danger' : 'primary'}
+            disabled={busy || (next === 'LOCKED' && !reason.trim())}
+          >
+            {busy ? 'Đang xử lý…' : next === 'LOCKED' ? 'Khóa tài khoản' : 'Xác nhận mở khóa'}
           </button>
         </div>
       </form>

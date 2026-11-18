@@ -30,21 +30,52 @@ interface FormState {
 }
 
 const EMPTY: FormState = {
-  name: '', nameEn: '', categoryCode: '', region: '', servingDescription: '', servingSize: '', servingUnit: '',
-  kcalPerServing: '', proteinPerServing: '', carbsPerServing: '', fatPerServing: '', dataQuality: 'SOURCED',
-  source: '', sourceUrl: '', imageUrl: '', reviewNote: '', active: true,
+  name: '',
+  nameEn: '',
+  categoryCode: '',
+  region: '',
+  servingDescription: '',
+  servingSize: '',
+  servingUnit: '',
+  kcalPerServing: '',
+  proteinPerServing: '',
+  carbsPerServing: '',
+  fatPerServing: '',
+  dataQuality: 'SOURCED',
+  source: '',
+  sourceUrl: '',
+  imageUrl: '',
+  reviewNote: '',
+  active: true,
 };
 
-const NUMBER_FIELDS = ['servingSize', 'kcalPerServing', 'proteinPerServing', 'carbsPerServing', 'fatPerServing'] as const;
+const NUMBER_FIELDS = [
+  'servingSize',
+  'kcalPerServing',
+  'proteinPerServing',
+  'carbsPerServing',
+  'fatPerServing',
+] as const;
 
 function fromDetail(d: AdminFoodDetail): FormState {
   const s = (n: number | null) => (n === null ? '' : String(n));
   return {
-    name: d.name, nameEn: d.nameEn ?? '', categoryCode: d.category.code, region: d.region?.code ?? '',
-    servingDescription: d.servingDescription, servingSize: s(d.servingSize), servingUnit: d.servingUnit ?? '',
-    kcalPerServing: s(d.kcalPerServing), proteinPerServing: s(d.proteinPerServing),
-    carbsPerServing: s(d.carbsPerServing), fatPerServing: s(d.fatPerServing), dataQuality: d.dataQuality,
-    source: d.source, sourceUrl: d.sourceUrl ?? '', imageUrl: d.imageUrl ?? '', reviewNote: d.reviewNote ?? '',
+    name: d.name,
+    nameEn: d.nameEn ?? '',
+    categoryCode: d.category.code,
+    region: d.region?.code ?? '',
+    servingDescription: d.servingDescription,
+    servingSize: s(d.servingSize),
+    servingUnit: d.servingUnit ?? '',
+    kcalPerServing: s(d.kcalPerServing),
+    proteinPerServing: s(d.proteinPerServing),
+    carbsPerServing: s(d.carbsPerServing),
+    fatPerServing: s(d.fatPerServing),
+    dataQuality: d.dataQuality,
+    source: d.source,
+    sourceUrl: d.sourceUrl ?? '',
+    imageUrl: d.imageUrl ?? '',
+    reviewNote: d.reviewNote ?? '',
     active: d.active,
   };
 }
@@ -58,7 +89,12 @@ function atwater(f: FormState): number | null {
   return 4 * p + 4 * c + 9 * fat;
 }
 
-export function FoodForm({ id, options, onSaved, onCancel }: {
+export function FoodForm({
+  id,
+  options,
+  onSaved,
+  onCancel,
+}: {
   id: string | null;
   options: FoodOptions;
   onSaved: (food: AdminFoodDetail, created: boolean) => void;
@@ -145,60 +181,90 @@ export function FoodForm({ id, options, onSaved, onCancel }: {
     }
   };
 
-  if (loading) return <p className="muted">Đang tải…</p>;
+  if (loading) return <p className="muted">Đang tải thông tin món ăn…</p>;
   if (id && !detail) return <Alert kind="error">{error ?? 'Không tải được món ăn'}</Alert>;
 
   const estimated = atwater(form);
   const kcal = parseNumber(form.kcalPerServing);
+  const diffPct =
+    estimated !== null && kcal !== null && !Number.isNaN(kcal) && kcal > 0
+      ? Math.round((Math.abs(kcal - estimated) / kcal) * 100)
+      : null;
+  const atwaterOk = diffPct === null || diffPct <= 15;
   const fe = fieldErrors;
+  const previewImg = /^https?:\/\/\S+$/i.test(form.imageUrl.trim()) ? form.imageUrl.trim() : null;
 
   return (
     <form onSubmit={submit} noValidate className="form">
       {detail && (
-        <p className="muted">
-          Mã <code>{detail.code}</code> · revision {detail.revision}
-        </p>
+        <div className="meta-banner">
+          <span>
+            Mã định danh: <code>{detail.code}</code>
+          </span>
+          <span>·</span>
+          <span>Phiên bản (revision): <strong>#{detail.revision}</strong></span>
+        </div>
       )}
       {conflict && (
         <div className="alert alert-error" role="alert">
-          Món này đã được sửa ở nơi khác sau khi bạn mở. Tải lại để xem bản mới (thay đổi chưa lưu sẽ mất).{' '}
-          <button type="button" onClick={load}>
-            Tải lại
-          </button>
+          <div className="alert-body">
+            Món này đã được sửa ở nơi khác sau khi bạn mở. Tải lại để xem bản mới (thay đổi chưa lưu sẽ mất).{' '}
+            <button type="button" onClick={load}>
+              Tải lại
+            </button>
+          </div>
         </div>
       )}
       <Alert kind="error">{error}</Alert>
 
       <div className="grid-2">
         <Field label="Tên món *" error={fe.name}>
-          <input value={form.name} maxLength={150} onChange={(e) => set('name', e.target.value)} />
+          <input
+            placeholder="Ví dụ: Phở bò tái nạm"
+            value={form.name}
+            maxLength={150}
+            onChange={(e) => set('name', e.target.value)}
+          />
         </Field>
         <Field label="Tên tiếng Anh" error={fe.nameEn}>
-          <input value={form.nameEn} maxLength={200} onChange={(e) => set('nameEn', e.target.value)} />
+          <input
+            placeholder="Ví dụ: Beef Noodle Soup"
+            value={form.nameEn}
+            maxLength={200}
+            onChange={(e) => set('nameEn', e.target.value)}
+          />
         </Field>
         <Field label="Danh mục *" error={fe.categoryCode}>
           <select value={form.categoryCode} onChange={(e) => set('categoryCode', e.target.value)}>
-            <option value="">— Chọn —</option>
+            <option value="">— Chọn danh mục —</option>
             {options.categories.map((c) => (
-              <option key={c.code} value={c.code}>{c.name}</option>
+              <option key={c.code} value={c.code}>
+                {c.name}
+              </option>
             ))}
           </select>
         </Field>
-        <Field label="Vùng" error={fe.region}>
+        <Field label="Vùng miền" error={fe.region}>
           <select value={form.region} onChange={(e) => set('region', e.target.value)}>
-            <option value="">— Không ghi —</option>
+            <option value="">— Không phân vùng —</option>
             {options.regions.map((r) => (
-              <option key={r.code} value={r.code}>{r.name}</option>
+              <option key={r.code} value={r.code}>
+                {r.name}
+              </option>
             ))}
           </select>
         </Field>
       </div>
 
       <fieldset>
-        <legend>Khẩu phần chuẩn — mọi số dinh dưỡng bên dưới là của đúng một khẩu phần này</legend>
+        <legend>Khẩu phần chuẩn &amp; Thành phần dinh dưỡng</legend>
         <div className="grid-3">
-          <Field label="Nhãn khẩu phần *" error={fe.servingDescription} hint="Ví dụ: 1 tô, 1 đĩa">
-            <input value={form.servingDescription} maxLength={100} onChange={(e) => set('servingDescription', e.target.value)} />
+          <Field label="Nhãn khẩu phần *" error={fe.servingDescription} hint="Ví dụ: 1 tô vừa, 1 đĩa, 100g">
+            <input
+              value={form.servingDescription}
+              maxLength={100}
+              onChange={(e) => set('servingDescription', e.target.value)}
+            />
           </Field>
           <Field label="Khối lượng" error={fe.servingSize} hint="Bỏ trống nếu nguồn không ghi">
             <input inputMode="decimal" value={form.servingSize} onChange={(e) => set('servingSize', e.target.value)} />
@@ -207,61 +273,118 @@ export function FoodForm({ id, options, onSaved, onCancel }: {
             <select value={form.servingUnit} onChange={(e) => set('servingUnit', e.target.value)}>
               <option value="">—</option>
               {options.servingUnits.map((u) => (
-                <option key={u} value={u}>{u}</option>
+                <option key={u} value={u}>
+                  {u}
+                </option>
               ))}
             </select>
           </Field>
         </div>
         <div className="grid-4">
           <Field label="Năng lượng (kcal) *" error={fe.kcalPerServing}>
-            <input inputMode="decimal" value={form.kcalPerServing} onChange={(e) => set('kcalPerServing', e.target.value)} />
+            <input
+              inputMode="decimal"
+              value={form.kcalPerServing}
+              onChange={(e) => set('kcalPerServing', e.target.value)}
+            />
           </Field>
-          <Field label="Đạm (g) *" error={fe.proteinPerServing}>
-            <input inputMode="decimal" value={form.proteinPerServing} onChange={(e) => set('proteinPerServing', e.target.value)} />
+          <Field label="Đạm / Protein (g) *" error={fe.proteinPerServing}>
+            <input
+              inputMode="decimal"
+              value={form.proteinPerServing}
+              onChange={(e) => set('proteinPerServing', e.target.value)}
+            />
           </Field>
-          <Field label="Bột đường (g) *" error={fe.carbsPerServing}>
-            <input inputMode="decimal" value={form.carbsPerServing} onChange={(e) => set('carbsPerServing', e.target.value)} />
+          <Field label="Bột đường / Carbs (g) *" error={fe.carbsPerServing}>
+            <input
+              inputMode="decimal"
+              value={form.carbsPerServing}
+              onChange={(e) => set('carbsPerServing', e.target.value)}
+            />
           </Field>
-          <Field label="Chất béo (g) *" error={fe.fatPerServing}>
-            <input inputMode="decimal" value={form.fatPerServing} onChange={(e) => set('fatPerServing', e.target.value)} />
+          <Field label="Chất béo / Fat (g) *" error={fe.fatPerServing}>
+            <input
+              inputMode="decimal"
+              value={form.fatPerServing}
+              onChange={(e) => set('fatPerServing', e.target.value)}
+            />
           </Field>
         </div>
         {estimated !== null && kcal !== null && !Number.isNaN(kcal) && (
-          <p className="muted">
-            Đối chiếu: 4×đạm + 4×bột đường + 9×béo = {estimated.toLocaleString('vi-VN', { maximumFractionDigits: 1 })} kcal
-            {kcal > 0 && ` (lệch ${Math.round((Math.abs(kcal - estimated) / kcal) * 100)}%; hiển thị cần ≤ 15%)`}
-          </p>
+          <div className={`atwater-box ${atwaterOk ? 'atwater-ok' : 'atwater-warn'}`}>
+            <span>
+              Đối chiếu Atwater (4×Đạm + 4×Bột đường + 9×Béo):{' '}
+              <strong>{estimated.toLocaleString('vi-VN', { maximumFractionDigits: 1 })} kcal</strong>
+            </span>
+            {diffPct !== null && (
+              <span className="atwater-badge">
+                Độ lệch {diffPct}% {atwaterOk ? '· Đạt ngưỡng ≤ 15%' : '· Vượt ngưỡng 15% (không thể bật hiển thị)'}
+              </span>
+            )}
+          </div>
         )}
       </fieldset>
 
       <fieldset>
-        <legend>Nguồn và mức tin cậy</legend>
+        <legend>Nguồn dữ liệu &amp; Hình ảnh</legend>
         <div className="grid-2">
           <Field label="Mức tin cậy *" error={fe.dataQuality}>
             <select value={form.dataQuality} onChange={(e) => set('dataQuality', e.target.value as DataQuality)}>
               {options.dataQualities.map((q) => (
-                <option key={q} value={q}>{DATA_QUALITY_LABELS[q]}</option>
+                <option key={q} value={q}>
+                  {DATA_QUALITY_LABELS[q]}
+                </option>
               ))}
             </select>
           </Field>
           <Field label="Nguồn số liệu *" error={fe.source}>
-            <input value={form.source} maxLength={200} onChange={(e) => set('source', e.target.value)} />
+            <input
+              placeholder="Ví dụ: Bảng thành phần thực phẩm Việt Nam - Viện Dinh Dưỡng"
+              value={form.source}
+              maxLength={200}
+              onChange={(e) => set('source', e.target.value)}
+            />
           </Field>
-          <Field label="URL nguồn" error={fe.sourceUrl}>
-            <input type="url" value={form.sourceUrl} maxLength={500} onChange={(e) => set('sourceUrl', e.target.value)} />
+          <Field label="URL nguồn tham khảo" error={fe.sourceUrl}>
+            <input
+              type="url"
+              placeholder="https://..."
+              value={form.sourceUrl}
+              maxLength={500}
+              onChange={(e) => set('sourceUrl', e.target.value)}
+            />
           </Field>
-          <Field label="URL ảnh" error={fe.imageUrl}>
-            <input type="url" value={form.imageUrl} maxLength={500} onChange={(e) => set('imageUrl', e.target.value)} />
-          </Field>
+          <div className="media-row">
+            <Field label="URL ảnh minh họa" error={fe.imageUrl}>
+              <input
+                type="url"
+                placeholder="https://..."
+                value={form.imageUrl}
+                maxLength={500}
+                onChange={(e) => set('imageUrl', e.target.value)}
+              />
+            </Field>
+            {previewImg && <img className="thumb" src={previewImg} alt="" />}
+          </div>
         </div>
-        <Field label="Ghi chú rà soát" error={fe.reviewNote} hint="Lý do ẩn/chờ rà; người dùng không thấy">
-          <textarea rows={2} value={form.reviewNote} maxLength={300} onChange={(e) => set('reviewNote', e.target.value)} />
+        <Field label="Ghi chú rà soát nội bộ" error={fe.reviewNote} hint="Lý do ẩn hoặc chờ rà soát; người dùng không nhìn thấy">
+          <textarea
+            rows={2}
+            value={form.reviewNote}
+            maxLength={300}
+            onChange={(e) => set('reviewNote', e.target.value)}
+          />
         </Field>
       </fieldset>
 
-      <label className="checkbox">
+      <label className="checkbox-card">
         <input type="checkbox" checked={form.active} onChange={(e) => set('active', e.target.checked)} />
-        Hiển thị cho người dùng (bỏ chọn để ẩn; thực đơn đã ghi vẫn giữ nguyên)
+        <div>
+          <strong>Hiển thị món ăn trong ứng dụng người dùng</strong>
+          <span className="muted small">
+            Bỏ chọn để ẩn khỏi danh sách tìm kiếm; các bữa ăn lịch sử đã lưu snapshot dinh dưỡng vẫn giữ nguyên.
+          </span>
+        </div>
       </label>
 
       <div className="form-actions">
@@ -269,7 +392,7 @@ export function FoodForm({ id, options, onSaved, onCancel }: {
           Hủy
         </button>
         <button type="submit" className="primary" disabled={busy || conflict}>
-          {busy ? 'Đang lưu…' : detail ? 'Lưu thay đổi' : 'Thêm món'}
+          {busy ? 'Đang lưu…' : detail ? 'Lưu thay đổi' : 'Thêm món ăn'}
         </button>
       </div>
     </form>

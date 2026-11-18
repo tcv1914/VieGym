@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { RequireAdmin } from './auth/AuthContext';
 import { Layout } from './components/Layout';
+import { DashboardPage } from './pages/DashboardPage';
 import { ExercisesPage } from './pages/ExercisesPage';
 import { FoodsPage } from './pages/FoodsPage';
 import { LoginPage } from './pages/LoginPage';
@@ -17,11 +18,13 @@ export function App() {
           </RequireAdmin>
         }
       >
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/foods" element={<FoodsPage />} />
         <Route path="/exercises" element={<ExercisesPage />} />
         <Route path="/users" element={<UsersPage />} />
       </Route>
-      <Route path="*" element={<Navigate to="/foods" replace />} />
+      <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   );
 }

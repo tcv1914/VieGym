@@ -27,28 +27,51 @@ interface FormState {
 }
 
 const EMPTY: FormState = {
-  name: '', muscleGroup: '', equipment: '', difficulty: '', instructions: '', commonMistakes: '', thumbnailUrl: '',
-  mediaType: '', mediaUrl: '', contentSource: '', mediaLicense: '', active: true,
+  name: '',
+  muscleGroup: '',
+  equipment: '',
+  difficulty: '',
+  instructions: '',
+  commonMistakes: '',
+  thumbnailUrl: '',
+  mediaType: '',
+  mediaUrl: '',
+  contentSource: '',
+  mediaLicense: '',
+  active: true,
 };
 
 const MEDIA_TYPES: { code: MediaType; name: string }[] = [
-  { code: 'IMAGE', name: 'Ảnh' },
-  { code: 'GIF', name: 'GIF' },
-  { code: 'VIDEO', name: 'Video' },
+  { code: 'IMAGE', name: 'Ảnh tĩnh (IMAGE)' },
+  { code: 'GIF', name: 'Ảnh động (GIF)' },
+  { code: 'VIDEO', name: 'Video (VIDEO)' },
 ];
 
 const MEDIA_HINT = 'URL http(s) hoặc tệp có sẵn dạng exercises/<tên tệp>; bỏ trống → app dùng ảnh mặc định';
 
 function fromDetail(d: AdminExerciseDetail): FormState {
   return {
-    name: d.name, muscleGroup: d.muscleGroup, equipment: d.equipment, difficulty: d.difficulty,
-    instructions: d.instructions, commonMistakes: d.commonMistakes, thumbnailUrl: d.thumbnailUrl ?? '',
-    mediaType: d.mediaType ?? '', mediaUrl: d.mediaUrl ?? '', contentSource: d.contentSource ?? '',
-    mediaLicense: d.mediaLicense ?? '', active: d.active,
+    name: d.name,
+    muscleGroup: d.muscleGroup,
+    equipment: d.equipment,
+    difficulty: d.difficulty,
+    instructions: d.instructions,
+    commonMistakes: d.commonMistakes,
+    thumbnailUrl: d.thumbnailUrl ?? '',
+    mediaType: d.mediaType ?? '',
+    mediaUrl: d.mediaUrl ?? '',
+    contentSource: d.contentSource ?? '',
+    mediaLicense: d.mediaLicense ?? '',
+    active: d.active,
   };
 }
 
-export function ExerciseForm({ id, filters, onSaved, onCancel }: {
+export function ExerciseForm({
+  id,
+  filters,
+  onSaved,
+  onCancel,
+}: {
   id: string | null;
   filters: ExerciseFilters;
   onSaved: (exercise: AdminExerciseDetail, created: boolean) => void;
@@ -124,72 +147,129 @@ export function ExerciseForm({ id, filters, onSaved, onCancel }: {
     }
   };
 
-  if (loading) return <p className="muted">Đang tải…</p>;
+  if (loading) return <p className="muted">Đang tải thông tin bài tập…</p>;
   if (id && !detail) return <Alert kind="error">{error ?? 'Không tải được bài tập'}</Alert>;
   const fe = fieldErrors;
+
+  const showThumbPreview = Boolean(detail?.thumbnailPreviewUrl && form.thumbnailUrl === (detail.thumbnailUrl ?? ''));
+  const showMediaPreview = Boolean(
+    detail?.mediaPreviewUrl &&
+      form.mediaUrl === (detail.mediaUrl ?? '') &&
+      (form.mediaType === 'GIF' || form.mediaType === 'IMAGE'),
+  );
 
   return (
     <form onSubmit={submit} noValidate className="form">
       {detail && (
-        <p className="muted">
-          Mã <code>{detail.code}</code> · revision {detail.revision}
-        </p>
+        <div className="meta-banner">
+          <span>
+            Mã định danh: <code>{detail.code}</code>
+          </span>
+          <span>·</span>
+          <span>Phiên bản (revision): <strong>#{detail.revision}</strong></span>
+        </div>
       )}
       {conflict && (
         <div className="alert alert-error" role="alert">
-          Bài này đã được sửa ở nơi khác sau khi bạn mở. Tải lại để xem bản mới (thay đổi chưa lưu sẽ mất).{' '}
-          <button type="button" onClick={load}>
-            Tải lại
-          </button>
+          <div className="alert-body">
+            Bài này đã được sửa ở nơi khác sau khi bạn mở. Tải lại để xem bản mới (thay đổi chưa lưu sẽ mất).{' '}
+            <button type="button" onClick={load}>
+              Tải lại
+            </button>
+          </div>
         </div>
       )}
       <Alert kind="error">{error}</Alert>
 
-      <Field label="Tên bài *" error={fe.name}>
-        <input value={form.name} maxLength={150} onChange={(e) => set('name', e.target.value)} />
+      <Field label="Tên bài tập *" error={fe.name}>
+        <input
+          placeholder="Ví dụ: Đẩy ngực ngang với tạ đòn (Barbell Bench Press)"
+          value={form.name}
+          maxLength={150}
+          onChange={(e) => set('name', e.target.value)}
+        />
       </Field>
+
       <div className="grid-3">
-        <Field label="Nhóm cơ *" error={fe.muscleGroup}>
+        <Field label="Nhóm cơ chính *" error={fe.muscleGroup}>
           <select value={form.muscleGroup} onChange={(e) => set('muscleGroup', e.target.value as MuscleGroup)}>
-            <option value="">— Chọn —</option>
-            {filters.muscleGroups.map((o) => <option key={o.code} value={o.code}>{o.name}</option>)}
+            <option value="">— Chọn nhóm cơ —</option>
+            {filters.muscleGroups.map((o) => (
+              <option key={o.code} value={o.code}>
+                {o.name}
+              </option>
+            ))}
           </select>
         </Field>
-        <Field label="Thiết bị *" error={fe.equipment}>
+        <Field label="Thiết bị tập *" error={fe.equipment}>
           <select value={form.equipment} onChange={(e) => set('equipment', e.target.value as Equipment)}>
-            <option value="">— Chọn —</option>
-            {filters.equipment.map((o) => <option key={o.code} value={o.code}>{o.name}</option>)}
+            <option value="">— Chọn thiết bị —</option>
+            {filters.equipment.map((o) => (
+              <option key={o.code} value={o.code}>
+                {o.name}
+              </option>
+            ))}
           </select>
         </Field>
         <Field label="Độ khó *" error={fe.difficulty}>
           <select value={form.difficulty} onChange={(e) => set('difficulty', e.target.value as Difficulty)}>
-            <option value="">— Chọn —</option>
-            {filters.difficulties.map((o) => <option key={o.code} value={o.code}>{o.name}</option>)}
+            <option value="">— Chọn độ khó —</option>
+            {filters.difficulties.map((o) => (
+              <option key={o.code} value={o.code}>
+                {o.name}
+              </option>
+            ))}
           </select>
         </Field>
       </div>
-      <Field label="Hướng dẫn *" error={fe.instructions} hint="Mỗi dòng một bước">
-        <textarea rows={5} maxLength={4000} value={form.instructions} onChange={(e) => set('instructions', e.target.value)} />
+
+      <Field label="Hướng dẫn kỹ thuật *" error={fe.instructions} hint="Mỗi dòng trình bày một bước thực hiện rõ ràng">
+        <textarea
+          rows={5}
+          maxLength={4000}
+          value={form.instructions}
+          onChange={(e) => set('instructions', e.target.value)}
+        />
       </Field>
-      <Field label="Lỗi thường gặp *" error={fe.commonMistakes} hint="Mỗi dòng một ý">
-        <textarea rows={3} maxLength={4000} value={form.commonMistakes} onChange={(e) => set('commonMistakes', e.target.value)} />
+      <Field label="Lỗi thường gặp &amp; Lưu ý an toàn *" error={fe.commonMistakes} hint="Mỗi dòng một lưu ý tránh chấn thương">
+        <textarea
+          rows={3}
+          maxLength={4000}
+          value={form.commonMistakes}
+          onChange={(e) => set('commonMistakes', e.target.value)}
+        />
       </Field>
 
       <fieldset>
-        <legend>Ảnh và media</legend>
-        <div className="media-row">
-          <Field label="Ảnh đại diện" error={fe.thumbnailUrl} hint={MEDIA_HINT}>
-            <input value={form.thumbnailUrl} maxLength={500} onChange={(e) => set('thumbnailUrl', e.target.value)} />
-          </Field>
-          {detail?.thumbnailPreviewUrl && form.thumbnailUrl === (detail.thumbnailUrl ?? '') && (
-            <img className="thumb" src={detail.thumbnailPreviewUrl} alt="" />
-          )}
-        </div>
+        <legend>Hình ảnh &amp; Media minh họa</legend>
+        {(showThumbPreview || showMediaPreview) && (
+          <div className="media-preview-strip">
+            {showThumbPreview && (
+              <div className="media-preview-box">
+                <img className="thumb" src={detail!.thumbnailPreviewUrl!} alt="" />
+                <span className="muted small">Ảnh đại diện hiện tại</span>
+              </div>
+            )}
+            {showMediaPreview && (
+              <div className="media-preview-box">
+                <img className="thumb" src={detail!.mediaPreviewUrl!} alt="" />
+                <span className="muted small">Media động (GIF/Ảnh)</span>
+              </div>
+            )}
+          </div>
+        )}
+        <Field label="Ảnh đại diện (Thumbnail)" error={fe.thumbnailUrl} hint={MEDIA_HINT}>
+          <input value={form.thumbnailUrl} maxLength={500} onChange={(e) => set('thumbnailUrl', e.target.value)} />
+        </Field>
         <div className="grid-2">
           <Field label="Loại media" error={fe.mediaType}>
             <select value={form.mediaType} onChange={(e) => set('mediaType', e.target.value as MediaType | '')}>
               <option value="">— Không có —</option>
-              {MEDIA_TYPES.map((m) => <option key={m.code} value={m.code}>{m.name}</option>)}
+              {MEDIA_TYPES.map((m) => (
+                <option key={m.code} value={m.code}>
+                  {m.name}
+                </option>
+              ))}
             </select>
           </Field>
           <Field label="Đường dẫn media" error={fe.mediaUrl} hint={MEDIA_HINT}>
@@ -198,15 +278,20 @@ export function ExerciseForm({ id, filters, onSaved, onCancel }: {
           <Field label="Nguồn nội dung" error={fe.contentSource}>
             <input value={form.contentSource} maxLength={500} onChange={(e) => set('contentSource', e.target.value)} />
           </Field>
-          <Field label="Giấy phép media" error={fe.mediaLicense}>
+          <Field label="Giấy phép bản quyền media" error={fe.mediaLicense}>
             <input value={form.mediaLicense} maxLength={500} onChange={(e) => set('mediaLicense', e.target.value)} />
           </Field>
         </div>
       </fieldset>
 
-      <label className="checkbox">
+      <label className="checkbox-card">
         <input type="checkbox" checked={form.active} onChange={(e) => set('active', e.target.checked)} />
-        Hiển thị trong thư viện (bỏ chọn để ẩn; giáo án và lịch đã có vẫn giữ bài)
+        <div>
+          <strong>Hiển thị trong thư viện bài tập</strong>
+          <span className="muted small">
+            Bỏ chọn để ẩn khỏi danh sách chọn mới; các giáo án và lịch tập đã lưu bài này vẫn hoạt động bình thường.
+          </span>
+        </div>
       </label>
 
       <div className="form-actions">
@@ -214,7 +299,7 @@ export function ExerciseForm({ id, filters, onSaved, onCancel }: {
           Hủy
         </button>
         <button type="submit" className="primary" disabled={busy || conflict}>
-          {busy ? 'Đang lưu…' : detail ? 'Lưu thay đổi' : 'Thêm bài'}
+          {busy ? 'Đang lưu…' : detail ? 'Lưu thay đổi' : 'Thêm bài tập'}
         </button>
       </div>
     </form>
