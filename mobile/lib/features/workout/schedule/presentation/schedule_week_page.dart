@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../dashboard/application/dashboard_providers.dart';
-
 import '../../../../core/format/date_format.dart';
+import '../../../../core/ui/gym_ui.dart';
 import '../../../auth/presentation/logout_button.dart';
+import '../../../dashboard/application/dashboard_providers.dart';
 import '../../log/presentation/log_history_page.dart';
 import '../../workout_widgets.dart';
 import '../application/schedule_providers.dart';
@@ -28,7 +28,6 @@ class _ScheduleWeekPageState extends ConsumerState<ScheduleWeekPage> {
 
   Future<void> _create() async {
     final now = today();
-    // Đang xem tuần tương lai thì mặc định thứ Hai của tuần đó, không thì hôm nay.
     final initial = _monday.isAfter(now) ? _monday : now;
     final created = await Navigator.of(context).push<ScheduleDetail>(
       MaterialPageRoute(
@@ -45,7 +44,6 @@ class _ScheduleWeekPageState extends ConsumerState<ScheduleWeekPage> {
     await Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => ScheduleDetailPage(id: item.id)),
     );
-    // Có thể đã dời sang tuần khác hoặc hủy: tải lại tuần đang xem.
     ref.invalidate(weekSchedulesProvider);
     ref.invalidate(dashboardProvider);
   }
@@ -55,98 +53,165 @@ class _ScheduleWeekPageState extends ConsumerState<ScheduleWeekPage> {
     final week = ref.watch(weekSchedulesProvider(_monday));
     final now = today();
     final isThisWeek = _monday == weekStart(now);
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Lịch tập'),
+
+    return GymScaffold(
+      appBar: GymAppBar(
+        eyebrow: 'KẾ HOẠCH TUẦN',
+        title: 'Lịch tập',
         actions: [
-          IconButton(
-            key: const Key('open-history'),
-            tooltip: 'Lịch sử tập',
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const LogHistoryPage()),
+          GymGlassAction(
+            child: IconButton(
+              key: const Key('open-history'),
+              tooltip: 'Lịch sử tập',
+              visualDensity: VisualDensity.compact,
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const LogHistoryPage()),
+              ),
+              icon: const Icon(Icons.history_rounded),
             ),
-            icon: const Icon(Icons.history),
           ),
-          const LogoutButton(),
+          const GymGlassAction(child: LogoutButton()),
         ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(56),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            child: Container(
+              height: 42,
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.22),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.14),
+                ),
+              ),
+              child: Row(
+                children: [
+                  IconButton(
+                    key: const Key('week-prev'),
+                    tooltip: 'Tuần trước',
+                    visualDensity: VisualDensity.compact,
+                    onPressed: () => _goWeek(-1),
+                    icon: const Icon(
+                      Icons.chevron_left_rounded,
+                      color: Colors.white,
+                    ),
+                  ),
+                  Expanded(
+                    child: Text(
+                      '${viDayMonth(_monday)} – ${viDate(addDays(_monday, 6))}',
+                      key: const Key('week-label'),
+                      textAlign: TextAlign.center,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13.5,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    key: const Key('week-next'),
+                    tooltip: 'Tuần sau',
+                    visualDensity: VisualDensity.compact,
+                    onPressed: () => _goWeek(1),
+                    icon: const Icon(
+                      Icons.chevron_right_rounded,
+                      color: Colors.white,
+                    ),
+                  ),
+                  if (!isThisWeek)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 4),
+                      child: TextButton(
+                        key: const Key('week-today'),
+                        style: TextButton.styleFrom(
+                          backgroundColor: GymColors.accentLime,
+                          foregroundColor: GymColors.heroDark,
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                          minimumSize: const Size(0, 30),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          textStyle: const TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        onPressed: () =>
+                            setState(() => _monday = weekStart(now)),
+                        child: const Text('Về tuần này'),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         key: const Key('schedule-create'),
+        heroTag: 'schedule-create-fab',
         onPressed: _create,
-        icon: const Icon(Icons.add),
-        label: const Text('Xếp lịch'),
+        icon: const Icon(Icons.add_rounded),
+        label: const Text(
+          'Xếp lịch',
+          style: TextStyle(fontWeight: FontWeight.w700),
+        ),
       ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Row(
-              children: [
-                IconButton(
-                  key: const Key('week-prev'),
-                  tooltip: 'Tuần trước',
-                  onPressed: () => _goWeek(-1),
-                  icon: const Icon(Icons.chevron_left),
-                ),
-                Expanded(
-                  child: Text(
-                    '${viDayMonth(_monday)} – ${viDate(addDays(_monday, 6))}',
-                    key: const Key('week-label'),
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.titleMedium,
+      body: week.when(
+        skipLoadingOnRefresh: !week.hasError,
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => ErrorRetry(
+          error: e,
+          onRetry: () => ref.invalidate(weekSchedulesProvider(_monday)),
+        ),
+        data: (list) => RefreshIndicator(
+          color: GymColors.vibrantGreen,
+          onRefresh: () => ref.refresh(weekSchedulesProvider(_monday).future),
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 96),
+            children: [
+              if (list.items.isEmpty)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: GymColors.vibrantGreen.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: GymColors.vibrantGreen.withValues(alpha: 0.25),
+                    ),
                   ),
-                ),
-                IconButton(
-                  key: const Key('week-next'),
-                  tooltip: 'Tuần sau',
-                  onPressed: () => _goWeek(1),
-                  icon: const Icon(Icons.chevron_right),
-                ),
-              ],
-            ),
-          ),
-          if (!isThisWeek)
-            TextButton(
-              key: const Key('week-today'),
-              onPressed: () => setState(() => _monday = weekStart(now)),
-              child: const Text('Về tuần này'),
-            ),
-          Expanded(
-            child: week.when(
-              skipLoadingOnRefresh: !week.hasError,
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => ErrorRetry(
-                error: e,
-                onRetry: () => ref.invalidate(weekSchedulesProvider(_monday)),
-              ),
-              data: (list) => RefreshIndicator(
-                onRefresh: () =>
-                    ref.refresh(weekSchedulesProvider(_monday).future),
-                child: ListView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.only(bottom: 88),
-                  children: [
-                    if (list.items.isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
+                  child: const Row(
+                    children: [
+                      Icon(
+                        Icons.event_available_rounded,
+                        color: GymColors.vibrantGreen,
+                      ),
+                      SizedBox(width: 10),
+                      Expanded(
                         child: Text(
                           'Tuần này chưa có lịch. Bấm "Xếp lịch" để thêm buổi từ giáo án của bạn.',
                           key: Key('week-empty'),
+                          style: TextStyle(fontWeight: FontWeight.w600),
                         ),
                       ),
-                    for (var i = 0; i < 7; i++)
-                      _DaySection(
-                        day: addDays(_monday, i),
-                        today: now,
-                        items: list.on(addDays(_monday, i)),
-                        onTap: _open,
-                      ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ),
+              for (var i = 0; i < 7; i++)
+                _DaySection(
+                  day: addDays(_monday, i),
+                  today: now,
+                  items: list.on(addDays(_monday, i)),
+                  onTap: _open,
+                ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -167,46 +232,52 @@ class _DaySection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final scheme = Theme.of(context).colorScheme;
     final isToday = day == today;
-    return Column(
+
+    return Padding(
       key: Key('day-${isoDate(day)}'),
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-          child: Row(
-            children: [
-              Text(
-                '${viWeekday(day)} ${viDayMonth(day)}',
-                style: theme.textTheme.titleSmall?.copyWith(
-                  color: isToday ? theme.colorScheme.primary : null,
-                  fontWeight: isToday ? FontWeight.bold : null,
-                ),
-              ),
-              if (isToday) ...[
-                const SizedBox(width: 8),
+      padding: const EdgeInsets.only(bottom: 12),
+      child: GymCard(
+        padding: const EdgeInsets.all(14),
+        borderColor: isToday
+            ? GymColors.vibrantGreen.withValues(alpha: 0.55)
+            : null,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
                 Text(
-                  'Hôm nay',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.primary,
+                  '${viWeekday(day)} ${viDayMonth(day)}',
+                  style: TextStyle(
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w800,
+                    color: isToday ? GymColors.heroMid : scheme.onSurface,
                   ),
                 ),
+                if (isToday) ...[
+                  const SizedBox(width: 8),
+                  const GymPill(label: 'Hôm nay'),
+                ],
               ],
-            ],
-          ),
-        ),
-        if (items.isEmpty)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
-            child: Text(
-              'Không có buổi tập',
-              style: theme.textTheme.bodySmall,
             ),
-          ),
-        for (final s in items)
-          ScheduleTile(item: s, today: today, onTap: () => onTap(s)),
-      ],
+            const SizedBox(height: 8),
+            if (items.isEmpty)
+              Text(
+                'Không có buổi tập',
+                style: TextStyle(
+                  color: scheme.onSurfaceVariant,
+                  fontSize: 13,
+                ),
+              ),
+            for (final (idx, s) in items.indexed) ...[
+              if (idx > 0) const SizedBox(height: 8),
+              ScheduleTile(item: s, today: today, onTap: () => onTap(s)),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }
@@ -225,29 +296,56 @@ class ScheduleTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final cancelled = item.status == ScheduleStatus.cancelled;
-    return ListTile(
-      key: Key('schedule-${item.id}'),
-      leading: SizedBox(
-        width: 52,
-        child: Center(child: Text(item.startTime ?? 'Cả ngày')),
+    return Material(
+      color: scheme.surfaceContainerLowest,
+      borderRadius: BorderRadius.circular(12),
+      child: ListTile(
+        key: Key('schedule-${item.id}'),
+        dense: true,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(
+            color: scheme.outlineVariant.withValues(alpha: 0.55),
+          ),
+        ),
+        leading: Container(
+          width: 58,
+          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+          decoration: BoxDecoration(
+            color: GymColors.vibrantGreen.withValues(alpha: 0.10),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            item.startTime ?? 'Cả ngày',
+            style: const TextStyle(
+              color: GymColors.heroMid,
+              fontWeight: FontWeight.w800,
+              fontSize: 12,
+            ),
+          ),
+        ),
+        title: Text(
+          item.workoutDay.name,
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 14.5,
+            decoration: cancelled ? TextDecoration.lineThrough : null,
+          ),
+        ),
+        subtitle: Text(
+          [
+            item.workoutDay.programName,
+            if (item.note != null) item.note!,
+          ].join(' · '),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        trailing: StatusChip(item: item, today: today),
+        onTap: onTap,
       ),
-      title: Text(
-        item.workoutDay.name,
-        style: cancelled
-            ? const TextStyle(decoration: TextDecoration.lineThrough)
-            : null,
-      ),
-      subtitle: Text(
-        [
-          item.workoutDay.programName,
-          if (item.note != null) item.note!,
-        ].join(' · '),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      trailing: StatusChip(item: item, today: today),
-      onTap: onTap,
     );
   }
 }
@@ -262,19 +360,14 @@ class StatusChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final (label, color) = switch (item.status) {
-      ScheduleStatus.completed => ('Đã tập', scheme.primary),
+      ScheduleStatus.completed => ('Đã tập', GymColors.vibrantGreen),
       ScheduleStatus.cancelled => ('Đã hủy', scheme.outline),
       ScheduleStatus.scheduled when item.isOverdue(today) => (
         'Đã qua',
         scheme.error,
       ),
-      ScheduleStatus.scheduled => ('Đã xếp', scheme.secondary),
+      ScheduleStatus.scheduled => ('Đã xếp', GymColors.bodyBlue),
     };
-    return Text(
-      label,
-      style: Theme.of(
-        context,
-      ).textTheme.labelMedium?.copyWith(color: color),
-    );
+    return GymPill(label: label, color: color);
   }
 }

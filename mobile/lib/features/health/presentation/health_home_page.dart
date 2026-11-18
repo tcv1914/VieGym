@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/ui/gym_ui.dart';
 import '../../auth/presentation/logout_button.dart';
 import '../application/health_profile_controller.dart';
 import 'health_profile_form_page.dart';
@@ -18,24 +19,21 @@ class HealthHomePage extends ConsumerWidget {
       // Đang thử lại sau lỗi thì hiện loading; còn lại giữ màn cũ trong lúc tải lại.
       skipLoadingOnRefresh: !profile.hasError,
       loading: () =>
-          const Scaffold(body: Center(child: CircularProgressIndicator())),
-      error: (error, _) => Scaffold(
-        appBar: AppBar(actions: const [LogoutButton()]),
-        body: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.error_outline, size: 64),
-                const SizedBox(height: 8),
-                Text(error.toString(), textAlign: TextAlign.center),
-                TextButton(
-                  onPressed: () => ref.invalidate(healthProfileProvider),
-                  child: const Text('Thử lại'),
-                ),
-              ],
-            ),
+          const GymScaffold(body: Center(child: CircularProgressIndicator())),
+      error: (error, _) => GymScaffold(
+        appBar: const GymAppBar(
+          eyebrow: 'CHỈ SỐ CƠ THỂ',
+          title: 'Hồ sơ sức khỏe',
+          actions: [GymGlassAction(child: LogoutButton())],
+        ),
+        body: GymStateView(
+          icon: Icons.error_outline_rounded,
+          accent: Theme.of(context).colorScheme.error,
+          message: error.toString(),
+          action: FilledButton.icon(
+            onPressed: () => ref.invalidate(healthProfileProvider),
+            icon: const Icon(Icons.refresh_rounded, size: 18),
+            label: const Text('Thử lại'),
           ),
         ),
       ),

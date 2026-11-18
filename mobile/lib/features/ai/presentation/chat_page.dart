@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/ui/gym_ui.dart';
 import '../../workout/workout_widgets.dart';
 import '../application/chat_controller.dart';
 import '../data/ai_models.dart';
@@ -71,6 +72,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
       (_, _) => _scrollToEnd(),
     );
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final length = _input.text.trim().length;
     final canSend =
         !state.sending && length > 0 && length <= maxQuestionLength;
@@ -85,10 +87,15 @@ class _ChatPageState extends ConsumerState<ChatPage> {
       body = ListView(
         key: const Key('ai-messages'),
         controller: _scroll,
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.fromLTRB(14, 14, 14, 16),
         children: [
           if (state.messages.isEmpty && pending == null)
-            const _Intro(),
+            _Intro(
+              onSelectSuggestion: (s) {
+                _input.text = s;
+                _input.selection = TextSelection.collapsed(offset: s.length);
+              },
+            ),
           for (final m in state.messages)
             _Bubble(
               message: m,
@@ -106,24 +113,53 @@ class _ChatPageState extends ConsumerState<ChatPage> {
       );
     }
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('AI Coach')),
+    return GymScaffold(
+      appBar: const GymAppBar(
+        eyebrow: 'HUẤN LUYỆN VIÊN AI 24/7',
+        title: 'AI Coach',
+      ),
       body: Column(
         children: [
           Container(
             width: double.infinity,
-            color: theme.colorScheme.surfaceContainerHighest,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            child: Text(
-              'Gợi ý của AI chỉ để tham khảo, không thay thế bác sĩ hay chuyên gia. '
-              'AI không tự sửa lịch tập, thực đơn hay hồ sơ của bạn.',
-              style: theme.textTheme.bodySmall,
+            decoration: BoxDecoration(
+              color: GymColors.vibrantGreen.withValues(alpha: 0.08),
+              border: Border(
+                bottom: BorderSide(
+                  color: GymColors.vibrantGreen.withValues(alpha: 0.20),
+                ),
+              ),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.only(top: 1),
+                  child: Icon(
+                    Icons.shield_outlined,
+                    size: 15,
+                    color: GymColors.heroMid,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Gợi ý của AI chỉ để tham khảo, không thay thế bác sĩ hay chuyên gia. '
+                    'AI không tự sửa lịch tập, thực đơn hay hồ sơ của bạn.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: GymColors.heroMid,
+                      fontSize: 11.5,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           if (state.notice != null)
             MaterialBanner(
               key: const Key('ai-notice'),
-              backgroundColor: theme.colorScheme.errorContainer,
+              backgroundColor: scheme.errorContainer,
               content: Text(state.notice!),
               actions: [
                 TextButton(
@@ -133,45 +169,62 @@ class _ChatPageState extends ConsumerState<ChatPage> {
               ],
             ),
           Expanded(child: body),
-          SafeArea(
-            top: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 4, 8, 8),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Expanded(
-                    child: TextField(
-                      key: const Key('ai-input'),
-                      controller: _input,
-                      minLines: 1,
-                      maxLines: 5,
-                      maxLength: maxQuestionLength,
-                      textInputAction: TextInputAction.newline,
-                      decoration: const InputDecoration(
-                        hintText: 'Hỏi về bữa ăn, lịch tập…',
-                        border: OutlineInputBorder(),
-                        isDense: true,
+          Container(
+            decoration: BoxDecoration(
+              color: scheme.surface,
+              border: Border(
+                top: BorderSide(
+                  color: scheme.outlineVariant.withValues(alpha: 0.6),
+                ),
+              ),
+            ),
+            child: SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 10, 10, 8),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        key: const Key('ai-input'),
+                        controller: _input,
+                        minLines: 1,
+                        maxLines: 5,
+                        maxLength: maxQuestionLength,
+                        textInputAction: TextInputAction.newline,
+                        decoration: gymInputDecoration(
+                          context,
+                          hintText: 'Hỏi về bữa ăn, lịch tập…',
+                        ).copyWith(isDense: true),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 4),
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 22),
-                    child: IconButton.filled(
-                      key: const Key('ai-send'),
-                      tooltip: 'Gửi',
-                      onPressed: canSend ? _send : null,
-                      icon: state.sending
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.send),
+                    const SizedBox(width: 8),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 22),
+                      child: IconButton.filled(
+                        key: const Key('ai-send'),
+                        tooltip: 'Gửi',
+                        style: IconButton.styleFrom(
+                          backgroundColor: GymColors.vibrantGreen,
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size(46, 46),
+                        ),
+                        onPressed: canSend ? _send : null,
+                        icon: state.sending
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Icon(Icons.send_rounded, size: 20),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -182,17 +235,84 @@ class _ChatPageState extends ConsumerState<ChatPage> {
 }
 
 class _Intro extends StatelessWidget {
-  const _Intro();
+  const _Intro({required this.onSelectSuggestion});
+
+  final ValueChanged<String> onSelectSuggestion;
+
+  static const _suggestions = [
+    'Hôm nay tôi còn thiếu bao nhiêu đạm?',
+    'Gợi ý bữa tối giàu protein dưới 600 kcal',
+    'Nhận xét tiến độ tập luyện tuần này của tôi',
+  ];
 
   @override
-  Widget build(BuildContext context) => const Padding(
-    padding: EdgeInsets.symmetric(vertical: 24),
-    child: Text(
-      'AI Coach xem hồ sơ, mục tiêu, thực đơn hôm nay, các buổi tập gần đây và lịch 7 ngày tới '
-      'của bạn để trả lời. Ví dụ: "Hôm nay tôi còn thiếu bao nhiêu đạm?"',
-      textAlign: TextAlign.center,
-    ),
-  );
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: GymCard(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                gradient: GymColors.heroGradient,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Icon(
+                Icons.auto_awesome_rounded,
+                color: GymColors.accentLime,
+                size: 28,
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Xin chào! Tôi là VieGym AI Coach',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'AI Coach xem hồ sơ, mục tiêu, thực đơn hôm nay, các buổi tập gần đây và lịch 7 ngày tới '
+              'của bạn để trả lời. Ví dụ: "Hôm nay tôi còn thiếu bao nhiêu đạm?"',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: scheme.onSurfaceVariant,
+                fontSize: 13,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              alignment: WrapAlignment.center,
+              children: [
+                for (final s in _suggestions)
+                  ActionChip(
+                    avatar: const Icon(
+                      Icons.bolt_rounded,
+                      size: 16,
+                      color: GymColors.vibrantGreen,
+                    ),
+                    label: Text(
+                      s,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    onPressed: () => onSelectSuggestion(s),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _BubbleFrame extends StatelessWidget {
@@ -210,6 +330,13 @@ class _BubbleFrame extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final radius = BorderRadius.only(
+      topLeft: const Radius.circular(18),
+      topRight: const Radius.circular(18),
+      bottomLeft: Radius.circular(mine ? 18 : 4),
+      bottomRight: Radius.circular(mine ? 4 : 18),
+    );
+
     return Align(
       alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
       child: ConstrainedBox(
@@ -217,17 +344,35 @@ class _BubbleFrame extends StatelessWidget {
           maxWidth: MediaQuery.sizeOf(context).width * 0.85,
         ),
         child: Container(
-          margin: const EdgeInsets.symmetric(vertical: 4),
-          padding: const EdgeInsets.all(12),
+          margin: const EdgeInsets.symmetric(vertical: 5),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
             color: error
                 ? scheme.errorContainer
                 : mine
-                ? scheme.primaryContainer
-                : scheme.surfaceContainerHigh,
-            borderRadius: BorderRadius.circular(12),
+                ? GymColors.heroMid
+                : scheme.surface,
+            borderRadius: radius,
+            border: mine && !error
+                ? null
+                : Border.all(
+                    color: error
+                        ? scheme.error.withValues(alpha: 0.4)
+                        : scheme.outlineVariant.withValues(alpha: 0.65),
+                  ),
           ),
-          child: child,
+          child: DefaultTextStyle.merge(
+            style: TextStyle(
+              color: error
+                  ? scheme.onErrorContainer
+                  : mine
+                  ? Colors.white
+                  : scheme.onSurface,
+              fontSize: 14.5,
+              height: 1.4,
+            ),
+            child: child,
+          ),
         ),
       ),
     );
@@ -243,13 +388,36 @@ class _Bubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final failed = message.isFailedQuestion;
+    final mine = message.role == ChatRole.user;
     return _BubbleFrame(
       key: Key('ai-message-${message.id}'),
-      mine: message.role == ChatRole.user,
+      mine: mine,
       error: failed,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (!mine) ...[
+            const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.auto_awesome_rounded,
+                  size: 14,
+                  color: GymColors.vibrantGreen,
+                ),
+                SizedBox(width: 4),
+                Text(
+                  'AI Coach',
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w800,
+                    color: GymColors.vibrantGreen,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+          ],
           if (message.role == ChatRole.assistant)
             CoachText(message.content)
           else
@@ -266,7 +434,7 @@ class _Bubble extends StatelessWidget {
               TextButton.icon(
                 key: Key('ai-retry-${message.id}'),
                 onPressed: onRetry,
-                icon: const Icon(Icons.refresh),
+                icon: const Icon(Icons.refresh_rounded, size: 18),
                 label: const Text('Thử lại'),
               ),
           ],
@@ -331,9 +499,12 @@ class _PendingBubble extends StatelessWidget {
                 SizedBox(
                   width: 16,
                   height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: GymColors.vibrantGreen,
+                  ),
                 ),
-                SizedBox(width: 8),
+                SizedBox(width: 10),
                 Text('AI đang trả lời…', key: Key('ai-typing')),
               ],
             ),

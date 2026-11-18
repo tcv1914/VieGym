@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/ui/gym_ui.dart';
 import '../../../exercise/data/exercise_api.dart';
 import '../../../exercise/data/exercise_models.dart';
 import '../../../exercise/presentation/exercise_media.dart';
@@ -15,7 +16,6 @@ class ExercisePickerPage extends ConsumerStatefulWidget {
 
   final Set<String> alreadyInDay;
 
-  /// Thư viện MVP nhỏ (32 bài): một trang là đủ, không cần cuộn tải thêm.
   static const pageSize = 100;
 
   @override
@@ -78,12 +78,15 @@ class _ExercisePickerPageState extends ConsumerState<ExercisePickerPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Chọn bài tập')),
+    return GymScaffold(
+      appBar: const GymAppBar(
+        eyebrow: 'THÊM VÀO BUỔI TẬP',
+        title: 'Chọn bài tập',
+      ),
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
             child: TextField(
               key: const Key('picker-search'),
               controller: _search,
@@ -93,10 +96,10 @@ class _ExercisePickerPageState extends ConsumerState<ExercisePickerPage> {
                 _load(v);
               },
               textInputAction: TextInputAction.search,
-              decoration: const InputDecoration(
-                hintText: 'Tìm theo tên bài',
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(),
+              decoration: gymInputDecoration(
+                context,
+                hintText: 'Tìm theo tên bài Việt hoặc Anh...',
+                prefixIcon: Icons.search_rounded,
               ),
             ),
           ),
@@ -114,27 +117,52 @@ class _ExercisePickerPageState extends ConsumerState<ExercisePickerPage> {
     final items = _page!.items;
     if (items.isEmpty) {
       return const StatusMessage(
-        icon: Icons.search_off,
+        icon: Icons.search_off_rounded,
         text: 'Không tìm thấy bài tập phù hợp.',
       );
     }
     return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
       children: [
         for (final e in items)
-          ListTile(
-            key: Key('pick-${e.id}'),
-            enabled: !widget.alreadyInDay.contains(e.id),
-            leading: ExerciseThumbnail(url: e.thumbnailUrl),
-            title: Text(e.name),
-            subtitle: widget.alreadyInDay.contains(e.id)
-                ? const Text('Đã có trong buổi này')
-                : null,
-            onTap: () => Navigator.of(context).pop(e),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: GymCard(
+              padding: EdgeInsets.zero,
+              child: ListTile(
+                key: Key('pick-${e.id}'),
+                enabled: !widget.alreadyInDay.contains(e.id),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 4,
+                ),
+                leading: ExerciseThumbnail(url: e.thumbnailUrl, size: 52),
+                title: Text(
+                  e.name,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                subtitle: widget.alreadyInDay.contains(e.id)
+                    ? const Text('Đã có trong buổi này')
+                    : null,
+                trailing: widget.alreadyInDay.contains(e.id)
+                    ? const Icon(
+                        Icons.check_circle_rounded,
+                        color: GymColors.vibrantGreen,
+                      )
+                    : const Icon(Icons.add_circle_outline_rounded),
+                onTap: () => Navigator.of(context).pop(e),
+              ),
+            ),
           ),
         if (_page!.hasNext)
           const Padding(
             padding: EdgeInsets.all(16),
-            child: Text('Còn bài khác, hãy gõ tên để tìm.'),
+            child: Center(
+              child: GymPill(
+                icon: Icons.search_rounded,
+                label: 'Còn bài khác, hãy gõ tên để tìm.',
+              ),
+            ),
           ),
       ],
     );

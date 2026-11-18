@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/network/api_client.dart';
+import '../../../../core/ui/gym_ui.dart';
 import '../../../exercise/data/exercise_models.dart';
 import '../../../exercise/presentation/exercise_media.dart';
 import '../../workout_widgets.dart';
@@ -31,7 +32,6 @@ class _ProgramFormPageState extends ConsumerState<ProgramFormPage> {
   bool _dirty = false;
   bool _saving = false;
 
-  /// setState khi lần đầu có thay đổi: PopScope.canPop đọc [_dirty] lúc build.
   void _changed([String? path]) {
     final clearError = path != null && _errors.containsKey(path);
     if (_dirty && !clearError) return;
@@ -41,7 +41,6 @@ class _ProgramFormPageState extends ConsumerState<ProgramFormPage> {
     });
   }
 
-  /// Đổi cấu trúc làm đường dẫn lỗi theo vị trí không còn đúng: bỏ hết, lưu lại sẽ kiểm tra lại.
   void _restructure(VoidCallback change) => setState(() {
     change();
     _dirty = true;
@@ -107,15 +106,14 @@ class _ProgramFormPageState extends ConsumerState<ProgramFormPage> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _saving = false);
-      // PUT gửi lại an toàn (version cũ → 409); POST thì có thể đã tạo.
       showSnack(context, _draft.isNew ? createErrorText(e) : e.toString());
     }
   }
 
-  String _summary(Map<String, String> errors) =>
-      errors.length == 1 ? errors.values.first : '${errors.values.first} (và ${errors.length - 1} lỗi khác)';
+  String _summary(Map<String, String> errors) => errors.length == 1
+      ? errors.values.first
+      : '${errors.values.first} (và ${errors.length - 1} lỗi khác)';
 
-  /// 409: không tự ghi đè. Người dùng chọn tải bản mới (bỏ thay đổi) hoặc ở lại xem.
   Future<void> _conflict(String message) async {
     final reload = await showDialog<bool>(
       context: context,
@@ -165,6 +163,7 @@ class _ProgramFormPageState extends ConsumerState<ProgramFormPage> {
   @override
   Widget build(BuildContext context) {
     final d = _draft;
+    final scheme = Theme.of(context).colorScheme;
     return PopScope(
       canPop: !_dirty && !_saving,
       onPopInvokedWithResult: (didPop, _) async {
@@ -174,14 +173,16 @@ class _ProgramFormPageState extends ConsumerState<ProgramFormPage> {
           Navigator.of(context).pop();
         }
       },
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text(d.isNew ? 'Tạo giáo án' : 'Sửa giáo án'),
+      child: GymScaffold(
+        appBar: GymAppBar(
+          eyebrow: 'THIẾT KẾ LỘ TRÌNH',
+          title: d.isNew ? 'Tạo giáo án' : 'Sửa giáo án',
           actions: [
             Padding(
-              padding: const EdgeInsets.only(right: 8),
+              padding: const EdgeInsets.symmetric(vertical: 10),
               child: BusyButton(
                 key: const Key('program-save'),
+                compact: true,
                 busy: _saving,
                 onPressed: _save,
                 label: 'Lưu',
@@ -190,58 +191,84 @@ class _ProgramFormPageState extends ConsumerState<ProgramFormPage> {
           ],
         ),
         body: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
           children: [
-            TextFormField(
-              key: const Key('program-name'),
-              initialValue: d.name,
-              maxLength: ProgramLimits.nameMax,
-              decoration: InputDecoration(
-                labelText: 'Tên giáo án',
-                errorText: _errors['name'],
+            GymCard(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextFormField(
+                    key: const Key('program-name'),
+                    initialValue: d.name,
+                    maxLength: ProgramLimits.nameMax,
+                    decoration: gymInputDecoration(
+                      context,
+                      labelText: 'Tên giáo án',
+                      prefixIcon: Icons.event_note_rounded,
+                    ).copyWith(errorText: _errors['name']),
+                    onChanged: (v) {
+                      d.name = v;
+                      _changed('name');
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    key: const Key('program-description'),
+                    initialValue: d.description,
+                    maxLength: ProgramLimits.descriptionMax,
+                    maxLines: 3,
+                    minLines: 1,
+                    decoration: gymInputDecoration(
+                      context,
+                      labelText: 'Mô tả (không bắt buộc)',
+                      prefixIcon: Icons.notes_rounded,
+                    ).copyWith(errorText: _errors['description']),
+                    onChanged: (v) {
+                      d.description = v;
+                      _changed('description');
+                    },
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    d.isNew
+                        ? 'Số hiệp, số lần và thời gian nghỉ là kế hoạch bạn tự đặt; mọi bài đều tính theo số lần.'
+                        : 'Thay đổi chỉ áp cho giáo án và các buổi chưa tập. Buổi bị gỡ vẫn được giữ trong lịch đã xếp.',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
               ),
-              onChanged: (v) {
-                d.name = v;
-                _changed('name');
-              },
-            ),
-            TextFormField(
-              key: const Key('program-description'),
-              initialValue: d.description,
-              maxLength: ProgramLimits.descriptionMax,
-              maxLines: 3,
-              minLines: 1,
-              decoration: InputDecoration(
-                labelText: 'Mô tả (không bắt buộc)',
-                errorText: _errors['description'],
-              ),
-              onChanged: (v) {
-                d.description = v;
-                _changed('description');
-              },
-            ),
-            Text(
-              d.isNew
-                  ? 'Số hiệp, số lần và thời gian nghỉ là kế hoạch bạn tự đặt; mọi bài đều tính theo số lần.'
-                  : 'Thay đổi chỉ áp cho giáo án và các buổi chưa tập. Buổi bị gỡ vẫn được giữ trong lịch đã xếp.',
-              style: Theme.of(context).textTheme.bodySmall,
             ),
             if (_errors['days'] != null)
               Padding(
-                padding: const EdgeInsets.only(top: 8),
+                padding: const EdgeInsets.only(top: 10),
                 child: Text(
                   _errors['days']!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                  style: TextStyle(color: scheme.error),
                 ),
               ),
             for (var i = 0; i < d.days.length; i++) _dayCard(i),
-            const SizedBox(height: 8),
+            const SizedBox(height: 14),
             OutlinedButton.icon(
               key: const Key('program-add-day'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: GymColors.heroMid,
+                minimumSize: const Size.fromHeight(50),
+                side: BorderSide(
+                  color: GymColors.vibrantGreen.withValues(alpha: 0.55),
+                  width: 1.4,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                textStyle: const TextStyle(fontWeight: FontWeight.w700),
+              ),
               onPressed: d.days.length >= ProgramLimits.maxDays
                   ? null
                   : () => _restructure(d.addDay),
-              icon: const Icon(Icons.add),
+              icon: const Icon(Icons.add_rounded),
               label: Text(
                 d.days.length >= ProgramLimits.maxDays
                     ? 'Tối đa ${ProgramLimits.maxDays} buổi'
@@ -257,12 +284,12 @@ class _ProgramFormPageState extends ConsumerState<ProgramFormPage> {
   Widget _dayCard(int i) {
     final d = _draft;
     final day = d.days[i];
-    final error = Theme.of(context).colorScheme.error;
-    return Card(
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
       key: ValueKey('day-${day.key}'),
-      margin: const EdgeInsets.only(top: 12),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 4, 4, 8),
+      padding: const EdgeInsets.only(top: 14),
+      child: GymCard(
+        padding: const EdgeInsets.fromLTRB(14, 14, 8, 12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -273,8 +300,11 @@ class _ProgramFormPageState extends ConsumerState<ProgramFormPage> {
                     key: Key('day-name-$i'),
                     initialValue: day.name,
                     maxLength: ProgramLimits.nameMax,
-                    decoration: InputDecoration(
+                    decoration: gymInputDecoration(
+                      context,
                       labelText: 'Tên buổi ${i + 1}',
+                      prefixIcon: Icons.fitness_center_rounded,
+                    ).copyWith(
                       counterText: '',
                       errorText: _errors['days[$i].name'],
                     ),
@@ -284,6 +314,7 @@ class _ProgramFormPageState extends ConsumerState<ProgramFormPage> {
                     },
                   ),
                 ),
+                const SizedBox(width: 4),
                 _MoveButtons(
                   index: i,
                   length: d.days.length,
@@ -295,23 +326,37 @@ class _ProgramFormPageState extends ConsumerState<ProgramFormPage> {
                   onPressed: d.days.length <= 1
                       ? null
                       : () => _restructure(() => d.days.removeAt(i)),
-                  icon: const Icon(Icons.delete_outline),
+                  icon: Icon(
+                    Icons.delete_outline_rounded,
+                    color: d.days.length <= 1 ? null : scheme.error,
+                  ),
                 ),
               ],
             ),
             if (_errors['days[$i].exercises'] != null)
-              Text(
-                _errors['days[$i].exercises']!,
-                style: TextStyle(color: error),
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  _errors['days[$i].exercises']!,
+                  style: TextStyle(color: scheme.error),
+                ),
               ),
-            for (var j = 0; j < day.exercises.length; j++)
-              _exerciseRow(i, j),
-            TextButton.icon(
+            for (var j = 0; j < day.exercises.length; j++) _exerciseRow(i, j),
+            const SizedBox(height: 8),
+            FilledButton.tonalIcon(
               key: Key('day-add-exercise-$i'),
+              style: FilledButton.styleFrom(
+                backgroundColor: GymColors.vibrantGreen.withValues(alpha: 0.12),
+                foregroundColor: GymColors.heroMid,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                textStyle: const TextStyle(fontWeight: FontWeight.w700),
+              ),
               onPressed: day.exercises.length >= ProgramLimits.maxExercisesPerDay
                   ? null
                   : () => _addExercise(day),
-              icon: const Icon(Icons.add),
+              icon: const Icon(Icons.add_rounded, size: 18),
               label: const Text('Thêm bài từ thư viện'),
             ),
           ],
@@ -325,27 +370,36 @@ class _ProgramFormPageState extends ConsumerState<ProgramFormPage> {
     final e = day.exercises[j];
     final path = 'days[$i].exercises[$j]';
     final exerciseError = _errors['$path.exerciseId'];
-    return Padding(
+    final scheme = Theme.of(context).colorScheme;
+
+    return Container(
       key: ValueKey('exercise-${e.key}'),
-      padding: const EdgeInsets.only(top: 8, right: 8),
+      margin: const EdgeInsets.only(top: 10, right: 6),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.6)),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              ExerciseThumbnail(url: e.thumbnailUrl, size: 40),
-              const SizedBox(width: 8),
+              ExerciseThumbnail(url: e.thumbnailUrl, size: 42),
+              const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(e.exerciseName),
+                    Text(
+                      e.exerciseName,
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
                     if (exerciseError != null)
                       Text(
                         exerciseError,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.error,
-                        ),
+                        style: TextStyle(color: scheme.error, fontSize: 12),
                       ),
                   ],
                 ),
@@ -359,19 +413,40 @@ class _ProgramFormPageState extends ConsumerState<ProgramFormPage> {
               ),
               IconButton(
                 tooltip: 'Bỏ bài',
-                onPressed: () => _restructure(() => day.exercises.removeAt(j)),
-                icon: const Icon(Icons.close),
+                visualDensity: VisualDensity.compact,
+                onPressed: () =>
+                    _restructure(() => day.exercises.removeAt(j)),
+                icon: const Icon(Icons.close_rounded, size: 20),
               ),
             ],
           ),
+          const SizedBox(height: 10),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _number('$path.targetSets', 'Số hiệp', 'hiệp', e.sets, (v) => e.sets = v),
+              _number(
+                '$path.targetSets',
+                'Số hiệp',
+                'hiệp',
+                e.sets,
+                (v) => e.sets = v,
+              ),
               const SizedBox(width: 8),
-              _number('$path.targetReps', 'Số lần', 'lần', e.reps, (v) => e.reps = v),
+              _number(
+                '$path.targetReps',
+                'Số lần',
+                'lần',
+                e.reps,
+                (v) => e.reps = v,
+              ),
               const SizedBox(width: 8),
-              _number('$path.restSeconds', 'Nghỉ', 'giây', e.rest, (v) => e.rest = v),
+              _number(
+                '$path.restSeconds',
+                'Nghỉ',
+                'giây',
+                e.rest,
+                (v) => e.rest = v,
+              ),
             ],
           ),
         ],
@@ -394,9 +469,16 @@ class _ProgramFormPageState extends ConsumerState<ProgramFormPage> {
         FilteringTextInputFormatter.digitsOnly,
         LengthLimitingTextInputFormatter(3),
       ],
-      decoration: InputDecoration(
+      decoration: gymInputDecoration(
+        context,
         labelText: label,
         suffixText: unit,
+      ).copyWith(
+        isDense: true,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 10,
+          vertical: 12,
+        ),
         errorText: _errors[path],
         errorMaxLines: 2,
       ),
@@ -427,13 +509,13 @@ class _MoveButtons extends StatelessWidget {
         tooltip: 'Lên',
         visualDensity: VisualDensity.compact,
         onPressed: index == 0 ? null : () => onMove(-1),
-        icon: const Icon(Icons.arrow_upward),
+        icon: const Icon(Icons.arrow_upward_rounded, size: 19),
       ),
       IconButton(
         tooltip: 'Xuống',
         visualDensity: VisualDensity.compact,
         onPressed: index == length - 1 ? null : () => onMove(1),
-        icon: const Icon(Icons.arrow_downward),
+        icon: const Icon(Icons.arrow_downward_rounded, size: 19),
       ),
     ],
   );

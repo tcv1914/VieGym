@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/format/date_format.dart';
+import '../../../../core/ui/gym_ui.dart';
 import '../../program/application/program_providers.dart';
 import '../../program/data/program_models.dart';
 import '../../workout_widgets.dart';
@@ -37,7 +38,6 @@ class _ScheduleFormPageState extends ConsumerState<ScheduleFormPage> {
     final s = widget.existing?.item;
     final now = today();
     final initial = s?.date ?? widget.initialDate ?? now;
-    // Lịch cũ đã quá ngày: gợi ý hôm nay (server không nhận ngày đã qua khi đổi ngày).
     _date = initial.isBefore(now) && !_isEdit ? now : initial;
     _time = _parseTime(s?.startTime);
     _note = TextEditingController(text: s?.note ?? '');
@@ -55,7 +55,8 @@ class _ScheduleFormPageState extends ConsumerState<ScheduleFormPage> {
     return TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
   }
 
-  String? get _timeText => _time == null ? null : hhmm(_time!.hour, _time!.minute);
+  String? get _timeText =>
+      _time == null ? null : hhmm(_time!.hour, _time!.minute);
 
   Future<void> _pickDate() async {
     final now = today();
@@ -66,7 +67,6 @@ class _ScheduleFormPageState extends ConsumerState<ScheduleFormPage> {
       lastDate: addDays(now, 365),
       helpText: 'Chọn ngày tập',
     );
-    // Hủy picker: giữ ngày cũ.
     if (picked != null) setState(() => _date = dateOnly(picked));
   }
 
@@ -105,7 +105,9 @@ class _ScheduleFormPageState extends ConsumerState<ScheduleFormPage> {
       if (!mounted) return;
       showSnack(
         context,
-        _isEdit ? 'Đã dời lịch' : 'Đã xếp lịch ${viWeekday(_date)} ${viDate(_date)}',
+        _isEdit
+            ? 'Đã dời lịch'
+            : 'Đã xếp lịch ${viWeekday(_date)} ${viDate(_date)}',
       );
       Navigator.of(context).pop(saved);
     } catch (e) {
@@ -117,54 +119,131 @@ class _ScheduleFormPageState extends ConsumerState<ScheduleFormPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(_isEdit ? 'Dời lịch' : 'Xếp lịch tập')),
+    final scheme = Theme.of(context).colorScheme;
+    return GymScaffold(
+      appBar: GymAppBar(
+        eyebrow: 'LẬP KẾ HOẠCH TẬP',
+        title: _isEdit ? 'Dời lịch' : 'Xếp lịch tập',
+      ),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
         children: [
-          if (_isEdit)
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.fitness_center),
-              title: Text(widget.existing!.item.workoutDay.name),
-              subtitle: Text(widget.existing!.item.workoutDay.programName),
-            )
-          else
-            ..._programAndDay(),
-          const Divider(),
-          ListTile(
-            key: const Key('schedule-date'),
-            contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.calendar_today),
-            title: Text('${viWeekday(_date)}, ${viDate(_date)}'),
-            subtitle: const Text('Ngày tập'),
-            trailing: const Icon(Icons.edit),
-            onTap: _saving ? null : _pickDate,
-          ),
-          ListTile(
-            key: const Key('schedule-time'),
-            contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.schedule),
-            title: Text(_timeText ?? 'Chưa đặt giờ'),
-            subtitle: const Text('Giờ bắt đầu (không bắt buộc)'),
-            trailing: _time == null
-                ? const Icon(Icons.edit)
-                : IconButton(
-                    tooltip: 'Bỏ giờ',
-                    onPressed: () => setState(() => _time = null),
-                    icon: const Icon(Icons.clear),
-                  ),
-            onTap: _saving ? null : _pickTime,
-          ),
-          TextField(
-            key: const Key('schedule-note'),
-            controller: _note,
-            maxLength: 500,
-            decoration: const InputDecoration(
-              labelText: 'Ghi chú (không bắt buộc)',
+          GymCard(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const GymSectionHeader(
+                  icon: Icons.fitness_center_rounded,
+                  title: 'Nội dung buổi tập',
+                ),
+                const SizedBox(height: 12),
+                if (_isEdit)
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: GymColors.vibrantGreen.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.event_note_rounded,
+                        color: GymColors.vibrantGreen,
+                      ),
+                    ),
+                    title: Text(
+                      widget.existing!.item.workoutDay.name,
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    subtitle: Text(
+                      widget.existing!.item.workoutDay.programName,
+                    ),
+                  )
+                else
+                  ..._programAndDay(),
+              ],
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
+          GymCard(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const GymSectionHeader(
+                  icon: Icons.calendar_month_rounded,
+                  title: 'Thời gian & Ghi chú',
+                  accent: GymColors.bodyBlue,
+                ),
+                const SizedBox(height: 12),
+                Material(
+                  color: scheme.surfaceContainerLowest,
+                  borderRadius: BorderRadius.circular(14),
+                  child: ListTile(
+                    key: const Key('schedule-date'),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      side: BorderSide(color: scheme.outlineVariant),
+                    ),
+                    leading: const Icon(
+                      Icons.calendar_today_rounded,
+                      color: GymColors.vibrantGreen,
+                    ),
+                    title: Text(
+                      '${viWeekday(_date)}, ${viDate(_date)}',
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    subtitle: const Text('Ngày tập'),
+                    trailing: const Icon(Icons.edit_outlined, size: 20),
+                    onTap: _saving ? null : _pickDate,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Material(
+                  color: scheme.surfaceContainerLowest,
+                  borderRadius: BorderRadius.circular(14),
+                  child: ListTile(
+                    key: const Key('schedule-time'),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      side: BorderSide(color: scheme.outlineVariant),
+                    ),
+                    leading: const Icon(
+                      Icons.schedule_rounded,
+                      color: GymColors.bodyBlue,
+                    ),
+                    title: Text(
+                      _timeText ?? 'Chưa đặt giờ',
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    subtitle: const Text('Giờ bắt đầu (không bắt buộc)'),
+                    trailing: _time == null
+                        ? const Icon(Icons.edit_outlined, size: 20)
+                        : IconButton(
+                            tooltip: 'Bỏ giờ',
+                            onPressed: () => setState(() => _time = null),
+                            icon: const Icon(Icons.clear_rounded),
+                          ),
+                    onTap: _saving ? null : _pickTime,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  key: const Key('schedule-note'),
+                  controller: _note,
+                  maxLength: 500,
+                  decoration: gymInputDecoration(
+                    context,
+                    labelText: 'Ghi chú (không bắt buộc)',
+                    prefixIcon: Icons.notes_rounded,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
           BusyButton(
             key: const Key('schedule-save'),
             busy: _saving,
@@ -181,7 +260,10 @@ class _ScheduleFormPageState extends ConsumerState<ScheduleFormPage> {
     return programs.when(
       loading: () => [const Center(child: CircularProgressIndicator())],
       error: (e, _) => [
-        ErrorRetry(error: e, onRetry: () => ref.invalidate(myProgramsProvider)),
+        ErrorRetry(
+          error: e,
+          onRetry: () => ref.invalidate(myProgramsProvider),
+        ),
       ],
       data: (items) {
         if (items.isEmpty) {
@@ -193,14 +275,18 @@ class _ScheduleFormPageState extends ConsumerState<ScheduleFormPage> {
             ),
           ];
         }
-        // Mặc định giáo án đang dùng.
-        _programId ??= (items.where((p) => p.isActive).firstOrNull ?? items.first).id;
+        _programId ??=
+            (items.where((p) => p.isActive).firstOrNull ?? items.first).id;
         return [
           DropdownButtonFormField<String>(
             key: const Key('schedule-program'),
             initialValue: _programId,
             isExpanded: true,
-            decoration: const InputDecoration(labelText: 'Giáo án'),
+            decoration: gymInputDecoration(
+              context,
+              labelText: 'Giáo án',
+              prefixIcon: Icons.event_note_rounded,
+            ),
             items: [
               for (final p in items)
                 DropdownMenuItem(
@@ -218,7 +304,7 @@ class _ScheduleFormPageState extends ConsumerState<ScheduleFormPage> {
                     _dayId = null;
                   }),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 14),
           _days(_programId!),
         ];
       },
@@ -244,7 +330,13 @@ class _ScheduleFormPageState extends ConsumerState<ScheduleFormPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Buổi tập', style: Theme.of(context).textTheme.titleSmall),
+            Text(
+              'Buổi tập',
+              style: Theme.of(
+                context,
+              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 6),
             for (final d in p.days) _dayOption(d),
           ],
         ),
@@ -254,18 +346,37 @@ class _ScheduleFormPageState extends ConsumerState<ScheduleFormPage> {
 
   Widget _dayOption(ProgramDay d) {
     final blocked = d.hasInactiveExercise;
-    return RadioListTile<String>(
-      key: Key('schedule-day-${d.id}'),
-      contentPadding: EdgeInsets.zero,
-      value: d.id,
-      enabled: !blocked,
-      title: Text(d.name),
-      subtitle: Text(
-        blocked
-            ? 'Có bài đã ngừng sử dụng, hãy sửa giáo án trước'
-            : d.exercises.map((e) => e.exerciseName).join(', '),
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
+    final selected = _dayId == d.id;
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: selected
+            ? GymColors.vibrantGreen.withValues(alpha: 0.08)
+            : scheme.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: selected
+              ? GymColors.vibrantGreen
+              : scheme.outlineVariant.withValues(alpha: 0.6),
+        ),
+      ),
+      child: RadioListTile<String>(
+        key: Key('schedule-day-${d.id}'),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 10),
+        value: d.id,
+        enabled: !blocked,
+        title: Text(
+          d.name,
+          style: const TextStyle(fontWeight: FontWeight.w700),
+        ),
+        subtitle: Text(
+          blocked
+              ? 'Có bài đã ngừng sử dụng, hãy sửa giáo án trước'
+              : d.exercises.map((e) => e.exerciseName).join(', '),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
       ),
     );
   }

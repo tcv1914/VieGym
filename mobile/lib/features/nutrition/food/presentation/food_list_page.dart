@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/ui/gym_ui.dart';
 import '../../../auth/presentation/logout_button.dart';
 import '../../../workout/workout_widgets.dart';
 import '../application/food_list_controller.dart';
@@ -88,27 +89,39 @@ class _FoodListPageState extends ConsumerState<FoodListPage> {
     final state = ref.watch(foodListProvider);
     final filters = ref.watch(foodFiltersProvider).value;
     final q = state.query;
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.title),
+    final scheme = Theme.of(context).colorScheme;
+
+    return GymScaffold(
+      appBar: GymAppBar(
+        eyebrow: 'ẨM THỰC & DINH DƯỠNG VIỆT',
+        title: widget.title,
         actions: [
-          IconButton(
-            key: const Key('food-filter'),
-            tooltip: 'Bộ lọc',
-            onPressed: _openFilters,
-            icon: Badge(
-              isLabelVisible: q.filterCount > 0,
-              label: Text('${q.filterCount}'),
-              child: const Icon(Icons.filter_list),
+          GymGlassAction(
+            child: IconButton(
+              key: const Key('food-filter'),
+              tooltip: 'Bộ lọc',
+              visualDensity: VisualDensity.compact,
+              onPressed: _openFilters,
+              icon: Badge(
+                backgroundColor: GymColors.accentLime,
+                textColor: GymColors.heroDark,
+                isLabelVisible: q.filterCount > 0,
+                label: Text(
+                  '${q.filterCount}',
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+                child: const Icon(Icons.tune_rounded),
+              ),
             ),
           ),
-          if (widget.onPick == null) const LogoutButton(),
+          if (widget.onPick == null)
+            const GymGlassAction(child: LogoutButton()),
         ],
       ),
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
             child: TextField(
               key: const Key('food-search'),
               controller: _search,
@@ -116,11 +129,10 @@ class _FoodListPageState extends ConsumerState<FoodListPage> {
               onChanged: _onSearchChanged,
               onSubmitted: _searchNow,
               maxLength: 100,
-              decoration: InputDecoration(
-                hintText: 'Tìm món, ví dụ: pho bo',
-                prefixIcon: const Icon(Icons.search),
-                counterText: '',
-                border: const OutlineInputBorder(),
+              decoration: gymInputDecoration(
+                context,
+                hintText: 'Tìm món ăn Việt (vd: phở bò, cơm tấm...)',
+                prefixIcon: Icons.search_rounded,
                 suffixIcon: ListenableBuilder(
                   listenable: _search,
                   builder: (context, _) => _search.text.isEmpty
@@ -131,15 +143,15 @@ class _FoodListPageState extends ConsumerState<FoodListPage> {
                             _search.clear();
                             _searchNow('');
                           },
-                          icon: const Icon(Icons.clear),
+                          icon: const Icon(Icons.clear_rounded, size: 20),
                         ),
                 ),
-              ),
+              ).copyWith(counterText: ''),
             ),
           ),
           if (q.filterCount > 0)
             SizedBox(
-              height: 48,
+              height: 44,
               child: ListView(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -150,6 +162,18 @@ class _FoodListPageState extends ConsumerState<FoodListPage> {
                       child: InputChip(
                         label: Text(
                           filters?.regionLabel(q.region!) ?? q.region!,
+                          style: const TextStyle(
+                            color: GymColors.heroMid,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        backgroundColor: GymColors.vibrantGreen.withValues(
+                          alpha: 0.14,
+                        ),
+                        deleteIcon: const Icon(Icons.clear, size: 18),
+                        deleteIconColor: GymColors.heroMid,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
                         onDeleted: () => _controller.setQuery(
                           q.withFilters(category: q.category),
@@ -160,6 +184,18 @@ class _FoodListPageState extends ConsumerState<FoodListPage> {
                     InputChip(
                       label: Text(
                         filters?.categoryLabel(q.category!) ?? q.category!,
+                        style: const TextStyle(
+                          color: GymColors.heroMid,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      backgroundColor: GymColors.vibrantGreen.withValues(
+                        alpha: 0.14,
+                      ),
+                      deleteIcon: const Icon(Icons.clear, size: 18),
+                      deleteIconColor: GymColors.heroMid,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
                       onDeleted: () =>
                           _controller.setQuery(q.withFilters(region: q.region)),
@@ -167,12 +203,27 @@ class _FoodListPageState extends ConsumerState<FoodListPage> {
                 ],
               ),
             ),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
-            child: Text(
-              'Số liệu cho 1 phần ăn theo Viện Dinh dưỡng Quốc gia (không phải 100 g).',
-              key: Key('food-basis-note'),
-              style: TextStyle(fontSize: 12),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 2, 16, 6),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.info_outline_rounded,
+                  size: 14,
+                  color: scheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'Số liệu cho 1 phần ăn theo Viện Dinh dưỡng Quốc gia (không phải 100 g).',
+                    key: const Key('food-basis-note'),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           Expanded(child: _body(state)),
@@ -182,6 +233,7 @@ class _FoodListPageState extends ConsumerState<FoodListPage> {
   }
 
   Widget _body(FoodListState state) {
+    final scheme = Theme.of(context).colorScheme;
     if (state.loadingFirst) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -191,54 +243,91 @@ class _FoodListPageState extends ConsumerState<FoodListPage> {
     if (state.items.isEmpty) {
       return StatusMessage(
         key: const Key('food-empty'),
-        icon: Icons.search_off,
+        icon: Icons.search_off_rounded,
         text: 'Không tìm thấy món phù hợp.',
         action: state.query.isEmpty
             ? null
-            : TextButton(
+            : FilledButton.tonalIcon(
                 key: const Key('food-clear-all'),
                 onPressed: _clearAll,
-                child: const Text('Xóa tìm kiếm và bộ lọc'),
+                icon: const Icon(Icons.filter_alt_off_rounded, size: 18),
+                label: const Text('Xóa tìm kiếm và bộ lọc'),
               ),
       );
     }
     return RefreshIndicator(
+      color: GymColors.vibrantGreen,
       onRefresh: _controller.refresh,
       child: ListView.builder(
         controller: _scroll,
         physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
         itemCount: state.items.length + 1,
         itemBuilder: (context, index) {
           if (index == state.items.length) return _footer(state);
           final f = state.items[index];
-          return ListTile(
-            key: Key('food-${f.id}'),
-            leading: FoodImage(url: f.imageUrl),
-            title: Text(f.name),
-            subtitle: Text(
-              '${kcalText(f.kcal)} / ${servingText(f)}\n'
-              '${[f.region?.name, f.code].whereType<String>().join(' · ')}',
-            ),
-            isThreeLine: true,
-            trailing: widget.onPick == null
-                ? null
-                : IconButton(
-                    key: Key('food-info-${f.id}'),
-                    tooltip: 'Xem chi tiết',
-                    icon: const Icon(Icons.info_outline),
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => FoodDetailPage(id: f.id, title: f.name),
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: GymCard(
+              padding: EdgeInsets.zero,
+              child: ListTile(
+                key: Key('food-${f.id}'),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                leading: FoodImage(url: f.imageUrl, size: 58),
+                title: Text(
+                  f.name,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                  ),
+                ),
+                subtitle: Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    '${kcalText(f.kcal)} / ${servingText(f)}\n'
+                    '${[f.region?.name, f.code].whereType<String>().join(' · ')}',
+                    style: TextStyle(
+                      color: scheme.onSurfaceVariant,
+                      fontSize: 12.5,
+                      height: 1.35,
+                    ),
+                  ),
+                ),
+                isThreeLine: true,
+                trailing: widget.onPick == null
+                    ? Icon(
+                        Icons.chevron_right_rounded,
+                        color: scheme.onSurfaceVariant,
+                      )
+                    : IconButton(
+                        key: Key('food-info-${f.id}'),
+                        tooltip: 'Xem chi tiết',
+                        icon: const Icon(
+                          Icons.info_outline_rounded,
+                          color: GymColors.vibrantGreen,
+                        ),
+                        onPressed: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                FoodDetailPage(id: f.id, title: f.name),
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-            onTap: widget.onPick != null
-                ? () => widget.onPick!(f)
-                : () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => FoodDetailPage(id: f.id, title: f.name),
-                    ),
-                  ),
+                onTap: widget.onPick != null
+                    ? () => widget.onPick!(f)
+                    : () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              FoodDetailPage(id: f.id, title: f.name),
+                        ),
+                      ),
+              ),
+            ),
           );
         },
       ),
@@ -268,13 +357,14 @@ class _FoodListPageState extends ConsumerState<FoodListPage> {
       );
     }
     return Padding(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(vertical: 16),
       child: Center(
-        child: Text(
-          state.hasNext
+        child: GymPill(
+          color: GymColors.flameOrange,
+          icon: Icons.restaurant_menu_rounded,
+          label: state.hasNext
               ? 'Đang hiển thị ${state.items.length}/${state.totalItems} món'
               : 'Đã hiển thị hết ${state.totalItems} món',
-          style: Theme.of(context).textTheme.bodySmall,
         ),
       ),
     );

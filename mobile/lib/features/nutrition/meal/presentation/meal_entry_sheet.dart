@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/format/number_format.dart';
 import '../../../../core/network/api_client.dart';
+import '../../../../core/ui/gym_ui.dart';
+import '../../../auth/presentation/auth_widgets.dart';
 import '../../food/presentation/food_widgets.dart';
 import '../data/meal_models.dart';
 
@@ -27,6 +29,7 @@ Future<void> showMealEntrySheet(
 }) => showModalBottomSheet<void>(
   context: context,
   isScrollControlled: true,
+  showDragHandle: true,
   builder: (context) => MealEntrySheet(
     title: title,
     foodName: foodName,
@@ -132,110 +135,183 @@ class _MealEntrySheetState extends State<MealEntrySheet> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: EdgeInsets.only(
-        left: 16,
-        right: 16,
-        top: 16,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 16,
-      ),
-      child: ListenableBuilder(
-        listenable: _servings,
-        builder: (context, _) {
-          final servings = parseServings(_servings.text);
-          return Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(widget.title, style: theme.textTheme.titleLarge),
-              const SizedBox(height: 8),
-              Text(widget.foodName, style: theme.textTheme.titleMedium),
-              Text(
-                '1 khẩu phần = ${widget.servingLabel}: '
-                '${kcalText(widget.perServing.kcal)} · '
-                'Đạm ${gramText(widget.perServing.protein)} · '
-                'Bột đường ${gramText(widget.perServing.carbs)} · '
-                'Béo ${gramText(widget.perServing.fat)}',
-                key: const Key('meal-per-serving'),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                key: const Key('meal-servings'),
-                controller: _servings,
-                enabled: !_busy,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
+    final scheme = Theme.of(context).colorScheme;
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: EdgeInsets.fromLTRB(
+          20,
+          4,
+          20,
+          20 + MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: ListenableBuilder(
+          listenable: _servings,
+          builder: (context, _) {
+            final servings = parseServings(_servings.text);
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                GymSectionHeader(
+                  icon: Icons.dinner_dining_rounded,
+                  title: widget.title,
+                  accent: GymColors.flameOrange,
                 ),
-                decoration: InputDecoration(
-                  labelText: 'Số khẩu phần',
-                  helperText: 'Ví dụ 0,5 hoặc 1,5 (tối đa 20)',
-                  errorText: servings == null && _servings.text.isNotEmpty
-                      ? 'Nhập số lớn hơn 0, tối đa 20, tối đa 2 chữ số lẻ'
-                      : null,
-                  border: const OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<MealType>(
-                key: const Key('meal-type'),
-                initialValue: _mealType,
-                decoration: const InputDecoration(
-                  labelText: 'Bữa',
-                  border: OutlineInputBorder(),
-                ),
-                items: [
-                  for (final t in MealType.values)
-                    DropdownMenuItem(value: t, child: Text(t.label)),
-                ],
-                onChanged: _busy
-                    ? null
-                    : (t) => setState(() => _mealType = t ?? _mealType),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                servings == null
-                    ? 'Xem trước: —'
-                    : 'Xem trước: '
-                          '${kcalText(previewKcal(servings, widget.perServing.kcal))}',
-                key: const Key('meal-preview'),
-                style: theme.textTheme.titleSmall,
-              ),
-              if (_error != null) ...[
-                const SizedBox(height: 8),
-                Text(
-                  _error!,
-                  key: const Key('meal-entry-error'),
-                  style: TextStyle(color: theme.colorScheme.error),
-                ),
-              ],
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  if (widget.onDelete != null)
-                    TextButton.icon(
-                      key: const Key('meal-delete'),
-                      onPressed: _busy ? null : _delete,
-                      icon: const Icon(Icons.delete_outline),
-                      label: const Text('Xóa'),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: scheme.surfaceContainerLowest,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: scheme.outlineVariant.withValues(alpha: 0.6),
                     ),
-                  const Spacer(),
-                  FilledButton.icon(
-                    key: const Key('meal-submit'),
-                    onPressed: _busy || servings == null ? null : _submit,
-                    icon: _busy
-                        ? const SizedBox.square(
-                            dimension: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.check),
-                    label: Text(widget.submitLabel),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.foodName,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '1 khẩu phần = ${widget.servingLabel}: '
+                        '${kcalText(widget.perServing.kcal)} · '
+                        'Đạm ${gramText(widget.perServing.protein)} · '
+                        'Bột đường ${gramText(widget.perServing.carbs)} · '
+                        'Béo ${gramText(widget.perServing.fat)}',
+                        key: const Key('meal-per-serving'),
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          color: scheme.onSurfaceVariant,
+                          height: 1.35,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+                TextField(
+                  key: const Key('meal-servings'),
+                  controller: _servings,
+                  enabled: !_busy,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: gymInputDecoration(
+                    context,
+                    labelText: 'Số khẩu phần',
+                    helperText: 'Ví dụ 0,5 hoặc 1,5 (tối đa 20)',
+                    prefixIcon: Icons.onetwothree_rounded,
+                  ).copyWith(
+                    errorText: servings == null && _servings.text.isNotEmpty
+                        ? 'Nhập số lớn hơn 0, tối đa 20, tối đa 2 chữ số lẻ'
+                        : null,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<MealType>(
+                  key: const Key('meal-type'),
+                  initialValue: _mealType,
+                  decoration: gymInputDecoration(
+                    context,
+                    labelText: 'Bữa',
+                    prefixIcon: Icons.schedule_rounded,
+                  ),
+                  items: [
+                    for (final t in MealType.values)
+                      DropdownMenuItem(value: t, child: Text(t.label)),
+                  ],
+                  onChanged: _busy
+                      ? null
+                      : (t) => setState(() => _mealType = t ?? _mealType),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: GymColors.flameOrange.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.local_fire_department_rounded,
+                        size: 18,
+                        color: GymColors.flameOrange,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        servings == null
+                            ? 'Xem trước: —'
+                            : 'Xem trước: '
+                                  '${kcalText(previewKcal(servings, widget.perServing.kcal))}',
+                        key: const Key('meal-preview'),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w800,
+                          color: GymColors.flameOrange,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (_error != null) ...[
+                  const SizedBox(height: 12),
+                  AuthNoticeBanner(
+                    message: _error!,
+                    textKey: const Key('meal-entry-error'),
                   ),
                 ],
-              ),
-            ],
-          );
-        },
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    if (widget.onDelete != null)
+                      TextButton.icon(
+                        key: const Key('meal-delete'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: scheme.error,
+                        ),
+                        onPressed: _busy ? null : _delete,
+                        icon: const Icon(Icons.delete_outline_rounded),
+                        label: const Text('Xóa'),
+                      ),
+                    const Spacer(),
+                    FilledButton.icon(
+                      key: const Key('meal-submit'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: GymColors.vibrantGreen,
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size(120, 48),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        textStyle: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                      onPressed: _busy || servings == null ? null : _submit,
+                      icon: _busy
+                          ? const SizedBox.square(
+                              dimension: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(Icons.check_rounded),
+                      label: Text(widget.submitLabel),
+                    ),
+                  ],
+                ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }

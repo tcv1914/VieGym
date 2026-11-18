@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/ui/gym_ui.dart';
 import '../../auth/presentation/logout_button.dart';
 import '../application/exercise_list_controller.dart';
 import '../data/exercise_models.dart';
@@ -94,27 +95,36 @@ class _ExerciseListPageState extends ConsumerState<ExerciseListPage> {
     final filters = ref.watch(exerciseFiltersProvider).value;
     final filterCount = state.query.filterCount;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Thư viện bài tập'),
+    return GymScaffold(
+      appBar: GymAppBar(
+        eyebrow: 'KHO ĐỘNG TÁC TẬP LUYỆN',
+        title: 'Thư viện bài tập',
         actions: [
-          IconButton(
-            key: const Key('exercise-filter'),
-            tooltip: 'Bộ lọc',
-            onPressed: _openFilters,
-            icon: Badge(
-              isLabelVisible: filterCount > 0,
-              label: Text('$filterCount'),
-              child: const Icon(Icons.filter_list),
+          GymGlassAction(
+            child: IconButton(
+              key: const Key('exercise-filter'),
+              tooltip: 'Bộ lọc',
+              visualDensity: VisualDensity.compact,
+              onPressed: _openFilters,
+              icon: Badge(
+                backgroundColor: GymColors.accentLime,
+                textColor: GymColors.heroDark,
+                isLabelVisible: filterCount > 0,
+                label: Text(
+                  '$filterCount',
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+                child: const Icon(Icons.tune_rounded),
+              ),
             ),
           ),
-          const LogoutButton(),
+          const GymGlassAction(child: LogoutButton()),
         ],
       ),
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
             child: TextField(
               key: const Key('exercise-search'),
               controller: _search,
@@ -122,11 +132,10 @@ class _ExerciseListPageState extends ConsumerState<ExerciseListPage> {
               onChanged: _onSearchChanged,
               onSubmitted: _searchNow,
               maxLength: 100,
-              decoration: InputDecoration(
-                hintText: 'Tìm theo tên, ví dụ: day nguc',
-                prefixIcon: const Icon(Icons.search),
-                counterText: '',
-                border: const OutlineInputBorder(),
+              decoration: gymInputDecoration(
+                context,
+                hintText: 'Tìm theo tên Việt hoặc Anh (vd: đẩy ngực, bench...)',
+                prefixIcon: Icons.search_rounded,
                 suffixIcon: ListenableBuilder(
                   listenable: _search,
                   builder: (context, _) => _search.text.isEmpty
@@ -137,10 +146,10 @@ class _ExerciseListPageState extends ConsumerState<ExerciseListPage> {
                             _search.clear();
                             _searchNow('');
                           },
-                          icon: const Icon(Icons.clear),
+                          icon: const Icon(Icons.clear_rounded, size: 20),
                         ),
                 ),
-              ),
+              ).copyWith(counterText: ''),
             ),
           ),
           if (filterCount > 0 && filters != null)
@@ -152,55 +161,119 @@ class _ExerciseListPageState extends ConsumerState<ExerciseListPage> {
   }
 
   Widget _body(ExerciseListState state, ExerciseFilters? filters) {
+    final scheme = Theme.of(context).colorScheme;
     if (state.loadingFirst) {
       return const Center(child: CircularProgressIndicator());
     }
     if (state.firstError != null) {
-      return _Message(
-        icon: Icons.error_outline,
-        text: state.firstError.toString(),
-        action: TextButton(
+      return GymStateView(
+        icon: Icons.error_outline_rounded,
+        accent: scheme.error,
+        message: state.firstError.toString(),
+        action: FilledButton.icon(
           onPressed: _controller.refresh,
-          child: const Text('Thử lại'),
+          icon: const Icon(Icons.refresh_rounded, size: 18),
+          label: const Text('Thử lại'),
         ),
       );
     }
     if (state.items.isEmpty) {
-      return _Message(
-        icon: Icons.search_off,
-        text: 'Không tìm thấy bài tập phù hợp.',
+      return GymStateView(
+        icon: Icons.search_off_rounded,
+        message: 'Không tìm thấy bài tập phù hợp.',
         action: state.query.isEmpty
             ? null
-            : TextButton(
+            : FilledButton.tonalIcon(
                 key: const Key('exercise-clear-all'),
                 onPressed: _clearAll,
-                child: const Text('Xóa tìm kiếm và bộ lọc'),
+                icon: const Icon(Icons.filter_alt_off_rounded, size: 18),
+                label: const Text('Xóa tìm kiếm và bộ lọc'),
               ),
       );
     }
+
     return RefreshIndicator(
+      color: GymColors.vibrantGreen,
       onRefresh: _controller.refresh,
       child: ListView.builder(
         controller: _scroll,
         physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
         itemCount: state.items.length + 1,
         itemBuilder: (context, index) {
           if (index == state.items.length) return _footer(state);
           final e = state.items[index];
-          return ListTile(
-            key: Key('exercise-${e.id}'),
-            leading: ExerciseThumbnail(url: e.thumbnailUrl),
-            title: Text(e.name),
-            subtitle: Text(
-              [
-                filters?.muscleGroupLabel(e.muscleGroup) ?? e.muscleGroup,
-                filters?.equipmentLabel(e.equipment) ?? e.equipment,
-                filters?.difficultyLabel(e.difficulty) ?? e.difficulty,
-              ].join(' · '),
-            ),
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => ExerciseDetailPage(id: e.id, title: e.name),
+          final diffColor = GymColors.difficultyColor(e.difficulty);
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: GymCard(
+              cardKey: Key('exercise-${e.id}'),
+              padding: const EdgeInsets.all(12),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => ExerciseDetailPage(id: e.id, title: e.name),
+                ),
+              ),
+              child: Row(
+                children: [
+                  ExerciseThumbnail(url: e.thumbnailUrl, size: 60),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          e.name,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15,
+                            height: 1.25,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            Container(
+                              width: 7,
+                              height: 7,
+                              decoration: BoxDecoration(
+                                color: diffColor,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                [
+                                  filters?.muscleGroupLabel(e.muscleGroup) ??
+                                      e.muscleGroup,
+                                  filters?.equipmentLabel(e.equipment) ??
+                                      e.equipment,
+                                  filters?.difficultyLabel(e.difficulty) ??
+                                      e.difficulty,
+                                ].join(' · '),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w500,
+                                  color: scheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ],
               ),
             ),
           );
@@ -232,13 +305,13 @@ class _ExerciseListPageState extends ConsumerState<ExerciseListPage> {
       );
     }
     return Padding(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(vertical: 16),
       child: Center(
-        child: Text(
-          state.hasNext
+        child: GymPill(
+          icon: Icons.check_circle_outline_rounded,
+          label: state.hasNext
               ? 'Đang hiển thị ${state.items.length}/${state.totalItems} bài'
               : 'Đã hiển thị hết ${state.totalItems} bài',
-          style: Theme.of(context).textTheme.bodySmall,
         ),
       ),
     );
@@ -259,7 +332,7 @@ class _ActiveFilters extends ConsumerWidget {
     final e = query.equipment;
     final d = query.difficulty;
     return SizedBox(
-      height: 48,
+      height: 44,
       child: ListView(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -292,32 +365,19 @@ class _ActiveFilters extends ConsumerWidget {
 
   Widget _chip(String label, VoidCallback onDeleted) => Padding(
     padding: const EdgeInsets.only(right: 8),
-    child: InputChip(label: Text(label), onDeleted: onDeleted),
-  );
-}
-
-class _Message extends StatelessWidget {
-  const _Message({required this.icon, required this.text, this.action});
-
-  final IconData icon;
-  final String text;
-  final Widget? action;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 64),
-            const SizedBox(height: 8),
-            Text(text, textAlign: TextAlign.center),
-            ?action,
-          ],
+    child: InputChip(
+      label: Text(
+        label,
+        style: const TextStyle(
+          color: GymColors.heroMid,
+          fontWeight: FontWeight.w700,
+          fontSize: 12.5,
         ),
       ),
-    );
-  }
+      backgroundColor: GymColors.vibrantGreen.withValues(alpha: 0.14),
+      deleteIconColor: GymColors.heroMid,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      onDeleted: onDeleted,
+    ),
+  );
 }

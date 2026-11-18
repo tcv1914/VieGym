@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/ui/gym_ui.dart';
 import '../../../dashboard/application/dashboard_providers.dart';
-
 import '../../../exercise/presentation/exercise_media.dart';
 import '../../schedule/application/schedule_providers.dart';
 import '../../workout_widgets.dart';
@@ -47,7 +47,9 @@ class _ProgramDetailPageState extends ConsumerState<ProgramDetailPage> {
       await ref.read(programApiProvider).activate(program.id);
       ref.invalidate(myProgramsProvider);
       ref.invalidate(programDetailProvider(program.id));
-      if (mounted) showSnack(context, 'Đã đặt "${program.name}" làm giáo án đang dùng');
+      if (mounted) {
+        showSnack(context, 'Đã đặt "${program.name}" làm giáo án đang dùng');
+      }
     } catch (e) {
       if (mounted) showSnack(context, e.toString());
     } finally {
@@ -73,16 +75,20 @@ class _ProgramDetailPageState extends ConsumerState<ProgramDetailPage> {
   Widget build(BuildContext context) {
     final detail = ref.watch(programDetailProvider(widget.id));
     final program = detail.value;
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(program?.name ?? 'Giáo án'),
+    return GymScaffold(
+      appBar: GymAppBar(
+        eyebrow: 'CHI TIẾT GIÁO ÁN',
+        title: program?.name ?? 'Giáo án',
         actions: [
           if (program != null && !program.isTemplate)
-            IconButton(
-              key: const Key('program-edit'),
-              tooltip: 'Sửa',
-              onPressed: _busy ? null : () => _edit(program),
-              icon: const Icon(Icons.edit),
+            GymGlassAction(
+              child: IconButton(
+                key: const Key('program-edit'),
+                tooltip: 'Sửa',
+                visualDensity: VisualDensity.compact,
+                onPressed: _busy ? null : () => _edit(program),
+                icon: const Icon(Icons.edit_outlined),
+              ),
             ),
         ],
       ),
@@ -94,32 +100,42 @@ class _ProgramDetailPageState extends ConsumerState<ProgramDetailPage> {
           onRetry: () => ref.invalidate(programDetailProvider(widget.id)),
         ),
         data: (p) => ListView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
           children: [
             if (p.isTemplate)
               const _Banner(
-                icon: Icons.info_outline,
+                icon: Icons.info_outline_rounded,
                 text:
                     'Giáo án mẫu chỉ để xem. Dùng mẫu sẽ tạo bản của bạn để sửa và xếp lịch.',
               )
             else if (p.isActive)
               const _Banner(
-                icon: Icons.star,
+                icon: Icons.star_rounded,
                 text: 'Đây là giáo án bạn đang dùng.',
               ),
             if (p.description != null && p.description!.isNotEmpty)
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Text(p.description!),
+                padding: const EdgeInsets.only(bottom: 12),
+                child: GymCard(
+                  padding: const EdgeInsets.all(14),
+                  child: Text(
+                    p.description!,
+                    style: const TextStyle(fontSize: 14, height: 1.4),
+                  ),
+                ),
               ),
-            for (final d in p.days) DayCard(day: d),
-            const SizedBox(height: 16),
+            for (final d in p.days)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: DayCard(day: d),
+              ),
+            const SizedBox(height: 8),
             if (p.isTemplate)
               BusyButton(
                 key: const Key('program-copy'),
                 busy: _busy,
                 onPressed: () => _copy(p),
-                icon: Icons.copy,
+                icon: Icons.copy_rounded,
                 label: 'Dùng giáo án này',
               )
             else if (!p.isActive)
@@ -127,7 +143,7 @@ class _ProgramDetailPageState extends ConsumerState<ProgramDetailPage> {
                 key: const Key('program-activate'),
                 busy: _busy,
                 onPressed: () => _activate(p),
-                icon: Icons.star_outline,
+                icon: Icons.star_rounded,
                 label: 'Đặt làm giáo án đang dùng',
               ),
           ],
@@ -144,9 +160,32 @@ class _Banner extends StatelessWidget {
   final String text;
 
   @override
-  Widget build(BuildContext context) => Card(
-    color: Theme.of(context).colorScheme.secondaryContainer,
-    child: ListTile(leading: Icon(icon), title: Text(text)),
+  Widget build(BuildContext context) => Container(
+    margin: const EdgeInsets.only(bottom: 12),
+    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+    decoration: BoxDecoration(
+      color: GymColors.vibrantGreen.withValues(alpha: 0.10),
+      borderRadius: BorderRadius.circular(14),
+      border: Border.all(
+        color: GymColors.vibrantGreen.withValues(alpha: 0.30),
+      ),
+    ),
+    child: Row(
+      children: [
+        Icon(icon, color: GymColors.vibrantGreen, size: 20),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(
+              color: GymColors.heroMid,
+              fontWeight: FontWeight.w700,
+              fontSize: 13.5,
+            ),
+          ),
+        ),
+      ],
+    ),
   );
 }
 
@@ -159,23 +198,23 @@ class DayCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 6),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text(
-                title ?? day.name,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
+    return GymCard(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          GymSectionHeader(
+            icon: Icons.fitness_center_rounded,
+            title: title ?? day.name,
+            trailing: GymPill(
+              label: '${day.exercises.length} bài',
+              color: GymColors.tealAccent,
             ),
-            for (final e in day.exercises) ExerciseLine(exercise: e),
-          ],
-        ),
+          ),
+          const SizedBox(height: 10),
+          const Divider(height: 1),
+          for (final e in day.exercises) ExerciseLine(exercise: e),
+        ],
       ),
     );
   }
@@ -189,17 +228,28 @@ class ExerciseLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final e = exercise;
+    final scheme = Theme.of(context).colorScheme;
     return ListTile(
-      dense: true,
-      leading: ExerciseThumbnail(url: e.thumbnailUrl),
-      title: Text(e.exerciseName),
-      subtitle: Text(
-        e.exerciseActive
-            ? planText(e.targetSets, e.targetReps, e.restSeconds)
-            : 'Bài đã ngừng sử dụng — cần thay bài khác',
-        style: e.exerciseActive
-            ? null
-            : TextStyle(color: Theme.of(context).colorScheme.error),
+      contentPadding: const EdgeInsets.symmetric(vertical: 2),
+      leading: ExerciseThumbnail(url: e.thumbnailUrl, size: 50),
+      title: Text(
+        e.exerciseName,
+        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14.5),
+      ),
+      subtitle: Padding(
+        padding: const EdgeInsets.only(top: 2),
+        child: Text(
+          e.exerciseActive
+              ? planText(e.targetSets, e.targetReps, e.restSeconds)
+              : 'Bài đã ngừng sử dụng — cần thay bài khác',
+          style: TextStyle(
+            fontSize: 12.5,
+            fontWeight: FontWeight.w600,
+            color: e.exerciseActive
+                ? GymColors.heroMid
+                : scheme.error,
+          ),
+        ),
       ),
     );
   }
